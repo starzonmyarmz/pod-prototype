@@ -9,7 +9,7 @@ import {
   reactorTemp,
   reactorExploded,
   lastSwitchPressTime,
-} from "../signals.js"
+} from "../state/reactor.js"
 
 import "../styles/reactor.css"
 
