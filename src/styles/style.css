@@ -1,0 +1,99 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #070809;
+  --panel: #141619;
+  --bezel: #23262b;
+  --bevel: #2f343c;
+  --ink: #e7e2cf;
+  --muted: #a8a39a;
+  --crt: #a7ffb0;
+  --crtDim: rgba(167, 255, 176, 0.16);
+  --warn: #ffcc66;
+  --alarm: #ff6666;
+  --ok: #7dffb6;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 40px;
+  --space-8: 48px;
+}
+
+html {
+  background: #fff;
+  color: var(--ink);
+  font-family: monospace;
+  line-height: 1;
+  text-transform: uppercase;
+  user-select: none;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+main {
+  background: var(--bg);
+  margin: var(--space-3);
+  padding: var(--space-3);
+}
+
+section,
+fieldset {
+  background: var(--panel);
+  padding: var(--space-3);
+}
+
+fieldset {
+  border: 1px solid currentColor;
+}
+
+legend {
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+/* Flex utilities */
+
+.flow {
+  display: flex;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.g1 {
+  gap: var(--space-1);
+}
+
+.g2 {
+  gap: var(--space-2);
+}
+
+.g3 {
+  gap: var(--space-3);
+}
+
+.g4 {
+  gap: var(--space-4);
+}
+
+.g5 {
+  gap: var(--space-5);
+}

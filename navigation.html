@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Retro Astro Plotter (p5.js)</title>
+
+		<!-- p5.js -->
+		<script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+
+		<style>
+			:root {
+				--bg: #070809;
+				--panel: #141619;
+				--bezel: #23262b;
+				--bevel: #2f343c;
+				--ink: #e7e2cf;
+				--muted: #a8a39a;
+				--crt: #a7ffb0;
+				--crtDim: rgba(167, 255, 176, 0.16);
+				--warn: #ffcc66;
+				--alarm: #ff6666;
+				--ok: #7dffb6;
+				--shadow: rgba(0, 0, 0, 0.55);
+				--edge: rgba(255, 255, 255, 0.07);
+			}
+
+			* {
+				box-sizing: border-box;
+			}
+			body {
+				margin: 0;
+				background: radial-gradient(
+					1200px 900px at 40% 10%,
+					#101216 0%,
+					var(--bg) 55%,
+					#040506 100%
+				);
+				color: var(--ink);
+				font-family:
+					ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+					"Liberation Mono", "Courier New", monospace;
+				letter-spacing: 0.2px;
+				height: 100vh;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				padding: 16px;
+			}
+
+			.console {
+				width: min(1100px, 96vw);
+				aspect-ratio: 16/9;
+				background: linear-gradient(180deg, #1b1f26 0%, #0f1115 100%);
+				border: 2px solid rgba(255, 255, 255, 0.06);
+				border-radius: 16px;
+				box-shadow:
+					0 24px 60px var(--shadow),
+					inset 0 1px 0 var(--edge);
+				padding: 14px;
+				display: grid;
+				grid-template-columns: 280px 1fr 300px;
+				grid-template-rows: 1fr 160px;
+				gap: 12px;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.console::before {
+				content: "";
+				position: absolute;
+				inset: -40px;
+				background:
+					radial-gradient(
+						800px 500px at 15% 0%,
+						rgba(255, 255, 255, 0.05),
+						transparent 55%
+					),
+					radial-gradient(
+						900px 700px at 90% 30%,
+						rgba(255, 255, 255, 0.03),
+						transparent 60%
+					),
+					repeating-linear-gradient(
+						90deg,
+						rgba(255, 255, 255, 0.015) 0 1px,
+						transparent 1px 6px
+					);
+				pointer-events: none;
+				opacity: 0.35;
+				transform: rotate(-2deg);
+			}
+
+			.panel {
+				background: linear-gradient(180deg, #181b20 0%, #111319 100%);
+				border: 1px solid rgba(255, 255, 255, 0.08);
+				border-radius: 14px;
+				box-shadow:
+					inset 0 1px 0 rgba(255, 255, 255, 0.06),
+					inset 0 -12px 30px rgba(0, 0, 0, 0.45);
+				position: relative;
+				overflow: hidden;
+			}
+
+			.panel .hdr {
+				padding: 10px 12px 8px;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+				background: linear-gradient(
+					180deg,
+					rgba(255, 255, 255, 0.06),
+					rgba(255, 255, 255, 0.02)
+				);
+				font-weight: 700;
+				text-transform: uppercase;
+				font-size: 13px;
+				letter-spacing: 1px;
+				color: rgba(231, 226, 207, 0.92);
+			}
+
+			.panel .body {
+				padding: 10px 12px 12px;
+			}
+
+			/* CRT area */
+			.crt-wrap {
+				display: flex;
+				flex-direction: column;
+				gap: 10px;
+				padding: 10px;
+			}
+
+			.crt-bezel {
+				flex: 1;
+				background: linear-gradient(180deg, #1c2026, #0f1115);
+				border: 2px solid rgba(255, 255, 255, 0.06);
+				border-radius: 14px;
+				box-shadow:
+					inset 0 1px 0 rgba(255, 255, 255, 0.05),
+					inset 0 -18px 40px rgba(0, 0, 0, 0.65);
+				padding: 10px;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.crt-glass {
+				width: 100%;
+				height: 100%;
+				border-radius: 10px;
+				background:
+					radial-gradient(
+						900px 600px at 30% 20%,
+						rgba(167, 255, 176, 0.1),
+						transparent 60%
+					),
+					radial-gradient(
+						600px 500px at 70% 70%,
+						rgba(167, 255, 176, 0.07),
+						transparent 55%
+					),
+					linear-gradient(180deg, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.75));
+				border: 1px solid rgba(167, 255, 176, 0.1);
+				position: relative;
+				overflow: hidden;
+			}
+
+			/* Scanlines overlay */
+			.crt-glass::after {
+				content: "";
+				position: absolute;
+				inset: 0;
+				background: repeating-linear-gradient(
+					to bottom,
+					rgba(255, 255, 255, 0.025) 0px,
+					rgba(255, 255, 255, 0.025) 1px,
+					rgba(0, 0, 0, 0) 3px,
+					rgba(0, 0, 0, 0) 5px
+				);
+				opacity: 0.25;
+				pointer-events: none;
+				mix-blend-mode: screen;
+			}
+
+			/* p5 canvas mounts here */
+			#sketchHost {
+				position: absolute;
+				inset: 0;
+				display: flex;
+				align-items: stretch;
+				justify-content: stretch;
+				padding: 8px;
+			}
+			#sketchHost canvas {
+				width: 100% !important;
+				height: 100% !important;
+				border-radius: 10px;
+				image-rendering: pixelated;
+			}
+
+			.statusbar {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 8px;
+				font-size: 12px;
+				color: rgba(231, 226, 207, 0.86);
+			}
+			.pill {
+				background: rgba(0, 0, 0, 0.35);
+				border: 1px solid rgba(255, 255, 255, 0.08);
+				border-radius: 999px;
+				padding: 7px 10px;
+				display: flex;
+				justify-content: space-between;
+				gap: 10px;
+				box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+			}
+			.k {
+				color: rgba(231, 226, 207, 0.72);
+			}
+			.v.ok {
+				color: var(--ok);
+			}
+			.v.warn {
+				color: var(--warn);
+			}
+			.v.bad {
+				color: var(--alarm);
+			}
+
+			/* Bottom strip */
+			.bottom {
+				grid-column: 1 / -1;
+				display: grid;
+				grid-template-columns: 1fr 1fr 1fr;
+				gap: 12px;
+				padding: 10px;
+			}
+
+			/* UI controls look */
+			.row {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 10px;
+				margin: 10px 0;
+				font-size: 12px;
+				color: rgba(231, 226, 207, 0.88);
+			}
+
+			.label {
+				opacity: 0.9;
+				text-transform: uppercase;
+				letter-spacing: 0.8px;
+				font-size: 11px;
+			}
+
+			.toggle {
+				display: flex;
+				gap: 6px;
+				flex-wrap: wrap;
+				justify-content: flex-end;
+			}
+
+			button,
+			.btn {
+				appearance: none;
+				background: linear-gradient(
+					180deg,
+					rgba(255, 255, 255, 0.08),
+					rgba(255, 255, 255, 0.02)
+				);
+				border: 1px solid rgba(255, 255, 255, 0.12);
+				border-radius: 10px;
+				color: rgba(231, 226, 207, 0.92);
+				padding: 8px 10px;
+				font: inherit;
+				font-size: 12px;
+				cursor: pointer;
+				box-shadow:
+					inset 0 1px 0 rgba(255, 255, 255, 0.06),
+					0 10px 18px rgba(0, 0, 0, 0.35);
+				transition:
+					transform 0.06s ease,
+					border-color 0.15s ease;
+				user-select: none;
+			}
+			button:active {
+				transform: translateY(1px);
+			}
+
+			.btn.on {
+				border-color: rgba(167, 255, 176, 0.35);
+				box-shadow:
+					inset 0 1px 0 rgba(255, 255, 255, 0.06),
+					0 10px 18px rgba(0, 0, 0, 0.35),
+					0 0 0 2px rgba(167, 255, 176, 0.1);
+				background: linear-gradient(
+					180deg,
+					rgba(167, 255, 176, 0.12),
+					rgba(255, 255, 255, 0.02)
+				);
+			}
+
+			.selector {
+				display: flex;
+				gap: 6px;
+				justify-content: flex-end;
+				flex-wrap: wrap;
+			}
+			.selector .btn {
+				min-width: 92px;
+				text-align: center;
+			}
+
+			.meter {
+				height: 16px;
+				border-radius: 999px;
+				border: 1px solid rgba(255, 255, 255, 0.12);
+				background: rgba(0, 0, 0, 0.35);
+				overflow: hidden;
+				box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+			}
+			.meter > div {
+				height: 100%;
+				width: 50%;
+				background: linear-gradient(
+					90deg,
+					rgba(125, 255, 182, 0.85),
+					rgba(255, 204, 102, 0.85),
+					rgba(255, 102, 102, 0.9)
+				);
+				filter: saturate(1.2);
+			}
+			.small {
+				font-size: 11px;
+				color: rgba(231, 226, 207, 0.75);
+			}
+
+			.foot {
+				position: absolute;
+				right: 14px;
+				top: 14px;
+				font-size: 11px;
+				color: rgba(231, 226, 207, 0.55);
+				text-transform: uppercase;
+				letter-spacing: 1px;
+				pointer-events: none;
+			}
+
+			.hint {
+				margin-top: 8px;
+				font-size: 11px;
+				color: rgba(231, 226, 207, 0.62);
+				line-height: 1.35;
+			}
+			kbd {
+				background: rgba(0, 0, 0, 0.35);
+				border: 1px solid rgba(255, 255, 255, 0.12);
+				border-bottom-color: rgba(255, 255, 255, 0.06);
+				border-radius: 8px;
+				padding: 2px 6px;
+				font-size: 11px;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div class="console">
+			<div class="foot">NAVIGATION / ASTRO PLOTTER</div>
+
+			<!-- Left: Filters -->
+			<section class="panel" id="filtersPanel">
+				<div class="hdr">Filters</div>
+				<div class="body">
+					<div class="row">
+						<div class="label">Object Type</div>
+						<div class="toggle">
+							<button class="btn on" data-toggle="stellar">STELLAR</button>
+							<button class="btn" data-toggle="artificial">ARTIFICIAL</button>
+							<button class="btn" data-toggle="unknown">UNKNOWN</button>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="label">Magnitude</div>
+						<div class="selector">
+							<button class="btn" data-mag="bright">BRIGHT</button>
+							<button class="btn on" data-mag="mid">MID</button>
+							<button class="btn" data-mag="dim">DIM</button>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="label">Spectral</div>
+						<div class="toggle">
+							<button class="btn on" data-spec="fgk">F/G/K</button>
+							<button class="btn" data-spec="ob">O/B</button>
+							<button class="btn" data-spec="m">M/ANOM</button>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="label">Confidence</div>
+						<div class="selector">
+							<button class="btn" data-conf="raw">RAW</button>
+							<button class="btn on" data-conf="probable">PROBABLE</button>
+							<button class="btn" data-conf="verified">VERIFIED</button>
+						</div>
+					</div>
+
+					<div class="hint">
+						Knobs: drag inside CRT. Hold <kbd>Shift</kbd> = fine adjust.
+						<kbd>R</kbd> resets knobs.
+					</div>
+				</div>
+			</section>
+
+			<!-- Center: CRT -->
+			<section class="panel crt-wrap">
+				<div class="crt-bezel">
+					<div class="crt-glass">
+						<div id="sketchHost"></div>
+					</div>
+				</div>
+				<div class="statusbar">
+					<div class="pill">
+						<span class="k">FRAME</span
+						><span id="frameRead" class="v warn">SHIP-REL</span>
+					</div>
+					<div class="pill">
+						<span class="k">SENSOR</span
+						><span id="sensorRead" class="v warn">FALLBACK</span>
+					</div>
+					<div class="pill">
+						<span class="k">ROUTE</span
+						><span id="routeRead" class="v warn">AMBIGUOUS</span>
+					</div>
+					<div class="pill">
+						<span class="k">DRIFT</span
+						><span id="driftRead" class="v warn">MODERATE</span>
+					</div>
+				</div>
+			</section>
+
+			<!-- Right: Frame & Routing -->
+			<section class="panel">
+				<div class="hdr">Frame / Routing</div>
+				<div class="body">
+					<div class="row">
+						<div class="label">Frame Select</div>
+						<div class="selector">
+							<button class="btn on" data-frame="ship">SHIP-REL</button>
+							<button class="btn" data-frame="galactic">GALACTIC</button>
+							<button class="btn" data-frame="ecliptic">ECLIPTIC</button>
+						</div>
+					</div>
+
+					<div class="row">
+						<div class="label">Confirm</div>
+						<button id="confirmBtn" class="btn">CONFIRM</button>
+					</div>
+
+					<div class="hint">
+						Drag in the CRT to turn <b>Yaw</b> & <b>Pitch</b>. Hold
+						<kbd>Alt</kbd> while dragging for <b>Roll</b>.
+					</div>
+				</div>
+			</section>
+
+			<!-- Bottom strip -->
+			<section class="panel bottom">
+				<div class="panel" style="padding: 10px">
+					<div class="hdr">Reactor Feed</div>
+					<div class="body">
+						<div class="row">
+							<div class="label">Output</div>
+							<div style="min-width: 120px; text-align: right">
+								<span id="outRead">62%</span>
+							</div>
+						</div>
+						<div class="meter"><div id="outBar"></div></div>
+						<div class="row small" style="margin-top: 8px">
+							<span>UNDERPOWER</span><span>NORMAL</span><span>OVERPOWER</span>
+						</div>
+						<div class="row" style="margin-top: 10px">
+							<button class="btn" id="outDown">-</button>
+							<button class="btn" id="outUp">+</button>
+						</div>
+						<div class="small">Tune output before plotting.</div>
+					</div>
+				</div>
+
+				<div class="panel" style="padding: 10px">
+					<div class="hdr">Core Temp</div>
+					<div class="body">
+						<div class="row">
+							<div class="label">Temp</div>
+							<div style="min-width: 120px; text-align: right">
+								<span id="tempRead">70%</span>
+							</div>
+						</div>
+						<div class="meter"><div id="tempBar"></div></div>
+						<div class="row" style="margin-top: 10px">
+							<button class="btn" id="tempDown">-</button>
+							<button class="btn" id="tempUp">+</button>
+						</div>
+						<div class="small">Higher heat increases CRT bloom.</div>
+					</div>
+				</div>
+
+				<div class="panel" style="padding: 10px">
+					<div class="hdr">Knob Readout</div>
+					<div class="body">
+						<div class="row">
+							<div class="label">Yaw</div>
+							<div id="yawRead">+0.0°</div>
+						</div>
+						<div class="row">
+							<div class="label">Pitch</div>
+							<div id="pitchRead">+0.0°</div>
+						</div>
+						<div class="row">
+							<div class="label">Roll</div>
+							<div id="rollRead">+0.0°</div>
+						</div>
+						<div class="small">
+							Goal: stable, coherent route. No “puzzle mode.”
+						</div>
+					</div>
+				</div>
+			</section>
+		</div>
+
+		<script>
+			// -----------------------------
+			// "Vibe code" astro plotter
+			// - p5 draws CRT star map + routes
+			// - HTML buttons act like mechanical toggles
+			// - Drag on CRT to rotate (Yaw/Pitch) and Alt-drag for Roll
+			// - Reactor output/temp influence jitter/bloom/noise
+			// -----------------------------
+
+			const state = {
+				// Filters
+				obj: { stellar: true, artificial: false, unknown: false },
+				mag: "mid", // bright | mid | dim
+				spec: { fgk: true, ob: false, m: false },
+				conf: "probable", // raw | probable | verified
+
+				// Frame
+				frame: "ship", // ship | galactic | ecliptic
+
+				// Knobs (degrees)
+				yaw: 0,
+				pitch: 0,
+				roll: 0,
+
+				// Reactor
+				output: 62, // 0-100
+				temp: 70, // 0-100
+
+				// Derived
+				coherence: 0, // 0..1
+				drift: 0, // 0..1
+				confirmed: false,
+				lastConfirmText: "—",
+			}
+
+			// --- UI wiring
+			function setBtnGroup(selector, activeAttr, value) {
+				document.querySelectorAll(selector).forEach((btn) => {
+					const v = btn.getAttribute(activeAttr)
+					btn.classList.toggle("on", v === value)
+				})
+			}
+
+			// Toggles (object type + spectral)
+			document.querySelectorAll("[data-toggle]").forEach((btn) => {
+				btn.addEventListener("click", () => {
+					const key = btn.dataset.toggle
+					state.obj[key] = !state.obj[key]
+					btn.classList.toggle("on", state.obj[key])
+				})
+			})
+
+			document.querySelectorAll("[data-spec]").forEach((btn) => {
+				btn.addEventListener("click", () => {
+					const key = btn.dataset.spec
+					state.spec[key] = !state.spec[key]
+					btn.classList.toggle("on", state.spec[key])
+				})
+			})
+
+			// Magnitude selector
+			document.querySelectorAll("[data-mag]").forEach((btn) => {
+				btn.addEventListener("click", () => {
+					state.mag = btn.dataset.mag
+					setBtnGroup("[data-mag]", "data-mag", state.mag)
+				})
+			})
+
+			// Confidence selector
+			document.querySelectorAll("[data-conf]").forEach((btn) => {
+				btn.addEventListener("click", () => {
+					state.conf = btn.dataset.conf
+					setBtnGroup("[data-conf]", "data-conf", state.conf)
+				})
+			})
+
+			// Frame selector
+			document.querySelectorAll("[data-frame]").forEach((btn) => {
+				btn.addEventListener("click", () => {
+					state.frame = btn.dataset.frame
+					setBtnGroup("[data-frame]", "data-frame", state.frame)
+				})
+			})
+
+			// Reactor buttons
+			const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v))
+			document.getElementById("outDown").onclick = () =>
+				(state.output = clamp(state.output - 1, 0, 100))
+			document.getElementById("outUp").onclick = () =>
+				(state.output = clamp(state.output + 1, 0, 100))
+			document.getElementById("tempDown").onclick = () =>
+				(state.temp = clamp(state.temp - 1, 0, 100))
+			document.getElementById("tempUp").onclick = () =>
+				(state.temp = clamp(state.temp + 1, 0, 100))
+
+			// Confirm
+			document.getElementById("confirmBtn").onclick = () => {
+				state.confirmed = true
+				state.lastConfirmText =
+					state.coherence > 0.78
+						? "JUMP SOLUTION ACCEPTED"
+						: "SOLUTION ACCEPTED (LOW CONFIDENCE)"
+				// quick flash effect via status text only
+				setTimeout(() => (state.confirmed = false), 250)
+			}
+
+			// --- p5 sketch
+			const sketch = (p) => {
+				let stars = []
+				let routes = []
+				let dragging = false
+				let lastX = 0,
+					lastY = 0
+
+				p.setup = () => {
+					const host = document.getElementById("sketchHost")
+					const c = p.createCanvas(host.clientWidth, host.clientHeight)
+					c.parent(host)
+					p.pixelDensity(1)
+
+					stars = makeStars(260)
+					routes = makeRoutes()
+				}
+
+				p.windowResized = () => {
+					const host = document.getElementById("sketchHost")
+					p.resizeCanvas(host.clientWidth, host.clientHeight)
+				}
+
+				// Drag in CRT to adjust knobs
+				p.mousePressed = () => {
+					if (isInsideCanvas(p.mouseX, p.mouseY)) {
+						dragging = true
+						lastX = p.mouseX
+						lastY = p.mouseY
+					}
+				}
+				p.mouseReleased = () => (dragging = false)
+
+				p.keyPressed = () => {
+					if (p.key === "r" || p.key === "R") {
+						state.yaw = 0
+						state.pitch = 0
+						state.roll = 0
+					}
+				}
+
+				p.draw = () => {
+					// reactor-driven "feel"
+					const under = state.output < 55
+					const over = state.output > 70
+					const hot = state.temp > 75
+
+					// drift + jitter
+					const baseJitter =
+						(under ? 0.8 : 0.3) + (over ? 0.6 : 0) + (hot ? 0.6 : 0)
+					const jitter = baseJitter * 0.6
+
+					// knob drift when underpowered
+					if (under) {
+						const driftAmt = ((55 - state.output) / 55) * 0.025
+						state.yaw += p.sin(p.frameCount * 0.02) * driftAmt
+						state.pitch += p.cos(p.frameCount * 0.017) * driftAmt
+						state.roll += p.sin(p.frameCount * 0.013) * driftAmt * 0.7
+					}
+
+					// mouse drag updates
+					if (dragging) {
+						const dx = p.mouseX - lastX
+						const dy = p.mouseY - lastY
+						lastX = p.mouseX
+						lastY = p.mouseY
+
+						const fine = p.keyIsDown(p.SHIFT) ? 0.35 : 1.0
+						const rollMode = p.keyIsDown(p.ALT)
+
+						if (rollMode) {
+							state.roll += dx * 0.05 * fine
+						} else {
+							state.yaw += dx * 0.05 * fine
+							state.pitch += dy * 0.05 * fine
+						}
+					}
+
+					// clamp knobs to a plausible limited travel
+					state.yaw = clamp(state.yaw, -20, 20)
+					state.pitch = clamp(state.pitch, -20, 20)
+					state.roll = clamp(state.roll, -20, 20)
+
+					// compute coherence from "good" settings (no hard mode)
+					state.coherence = computeCoherence()
+					state.drift = computeDrift(under, over, hot)
+
+					// draw CRT background
+					p.clear()
+					p.noStroke()
+
+					// dark glass base
+					p.fill(0, 0, 0, 190)
+					p.rect(0, 0, p.width, p.height, 12)
+
+					// subtle vignette
+					p.fill(0, 0, 0, 55)
+					p.rect(0, 0, p.width, p.height)
+
+					// CRT glow intensity
+					const glow = 60 + state.coherence * 65
+					p.drawingContext.shadowBlur = 18 + glow * 0.2
+					p.drawingContext.shadowColor = "rgba(167,255,176,.35)"
+
+					// bloom overlay when hot/over
+					const bloom = (over ? 0.25 : 0) + (hot ? 0.25 : 0)
+					if (bloom > 0) {
+						p.fill(167, 255, 176, 70 * bloom)
+						p.rect(0, 0, p.width, p.height, 12)
+					}
+
+					// Draw stars based on filters
+					drawStars(jitter)
+
+					// Draw routes (dotted)
+					drawRoutes(jitter)
+
+					// Optional: "coherent" stabilizer effect
+					if (state.coherence > 0.78) {
+						p.drawingContext.shadowBlur = 22
+						p.stroke(167, 255, 176, 160)
+						p.noFill()
+						p.rect(10, 10, p.width - 20, p.height - 20, 10)
+					}
+
+					// reset shadow
+					p.drawingContext.shadowBlur = 0
+
+					// Update UI text
+					updateReadouts()
+				}
+
+				function isInsideCanvas(mx, my) {
+					return mx >= 0 && my >= 0 && mx <= p.width && my <= p.height
+				}
+
+				function makeStars(n) {
+					// Create a field with categories that filters can gate.
+					// type: stellar | artificial | unknown
+					// spec: fgk | ob | m
+					// mag: 0..1 (0 bright)
+					const arr = []
+					for (let i = 0; i < n; i++) {
+						const r = p.random()
+						const type =
+							r < 0.78 ? "stellar" : r < 0.88 ? "artificial" : "unknown"
+						const sr = p.random()
+						const spec = sr < 0.62 ? "fgk" : sr < 0.78 ? "m" : "ob"
+						const mag = p.random() // 0 bright -> 1 dim
+						arr.push({
+							x: p.random(-1, 1),
+							y: p.random(-1, 1),
+							type,
+							spec,
+							mag,
+						})
+					}
+					return arr
+				}
+
+				function makeRoutes() {
+					// Handful of candidate routes; one becomes dominant when coherent
+					// Points are in normalized space around center.
+					const base = [
+						// A "good" constellation-ish polyline
+						[
+							[-0.35, -0.2],
+							[-0.1, -0.35],
+							[0.18, -0.1],
+							[0.05, 0.25],
+							[-0.25, 0.18],
+						],
+						[
+							[-0.1, -0.35],
+							[0.35, -0.4],
+							[0.55, -0.1],
+						],
+						[
+							[0.05, 0.25],
+							[0.55, 0.35],
+							[0.75, 0.1],
+						],
+						// distractors
+						[
+							[-0.6, 0.35],
+							[-0.2, 0.55],
+							[0.2, 0.45],
+							[0.45, 0.65],
+						],
+						[
+							[-0.55, -0.55],
+							[-0.15, -0.65],
+							[0.25, -0.55],
+							[0.55, -0.65],
+						],
+						[
+							[-0.75, 0.0],
+							[-0.45, 0.1],
+							[-0.15, -0.05],
+							[0.15, 0.05],
+							[0.45, -0.1],
+							[0.75, 0.0],
+						],
+					]
+					return base
+				}
+
+				function applyRotation(x, y) {
+					// yaw/pitch/roll are just 2D-ish transforms for vibe
+					const a = p.radians(state.yaw)
+					const b = p.radians(state.pitch)
+					const c = p.radians(state.roll)
+
+					// start with roll (2D rotation)
+					let xr = x * p.cos(c) - y * p.sin(c)
+					let yr = x * p.sin(c) + y * p.cos(c)
+
+					// emulate yaw/pitch as subtle skew/tilt
+					xr += yr * p.sin(a) * 0.35
+					yr += xr * p.sin(b) * 0.25
+
+					return [xr, yr]
+				}
+
+				function passesFilters(s) {
+					// object type
+					if (!state.obj[s.type]) return false
+
+					// spectral
+					if (!state.spec[s.spec]) return false
+
+					// magnitude gate
+					// bright: keep mag < 0.35, mid: < 0.65, dim: < 0.92 (still drops faintest)
+					const magCut =
+						state.mag === "bright" ? 0.35 : state.mag === "mid" ? 0.65 : 0.92
+					if (s.mag > magCut) return false
+
+					// confidence gate: raw shows all, probable drops some unknown/low quality, verified drops more
+					if (state.conf === "probable") {
+						if (s.type === "unknown" && s.mag > 0.55) return false
+					}
+					if (state.conf === "verified") {
+						if (s.type !== "stellar") return false
+						if (s.mag > 0.55) return false
+					}
+
+					return true
+				}
+
+				function drawStars(jitter) {
+					const cx = p.width * 0.5,
+						cy = p.height * 0.5
+					const scale = Math.min(p.width, p.height) * 0.45
+
+					// frame effects: ship-rel adds subtle wobble; galactic stabilizes; ecliptic skews
+					const frameWobble = state.frame === "ship" ? 0.012 : 0
+					const eclipSkew = state.frame === "ecliptic" ? 0.08 : 0
+
+					// Star count for density feedback
+					let shown = 0
+
+					for (const s of stars) {
+						if (!passesFilters(s)) continue
+
+						shown++
+
+						// base position
+						let x = s.x,
+							y = s.y
+
+						// apply frame transforms
+						if (frameWobble) {
+							x += p.sin(p.frameCount * 0.01 + s.mag * 6) * frameWobble
+							y += p.cos(p.frameCount * 0.012 + s.mag * 5) * frameWobble
+						}
+						if (eclipSkew) {
+							x += y * eclipSkew
+						}
+
+						// apply knob rotation
+						const [rx, ry] = applyRotation(x, y)
+
+						// jitter from reactor/temp
+						const jx = p.random(-jitter, jitter) * 0.002
+						const jy = p.random(-jitter, jitter) * 0.002
+
+						const sx = cx + (rx + jx) * scale
+						const sy = cy + (ry + jy) * scale
+
+						// brightness (vector intensity)
+						const intensity = 150 + (1 - s.mag) * 90
+						const alpha =
+							intensity *
+							(state.conf === "raw"
+								? 0.85
+								: state.conf === "probable"
+									? 0.75
+									: 0.65)
+
+						// size
+						let r = 1.2 + (1 - s.mag) * 1.8
+						if (state.temp > 75) r *= 1.18
+						if (state.output > 70) r *= 1.12
+
+						p.noStroke()
+						p.fill(167, 255, 176, alpha)
+						p.circle(sx, sy, r)
+					}
+
+					// stash density feel (used for status)
+					state._shownStars = shown
+				}
+
+				function drawRoutes(jitter) {
+					const cx = p.width * 0.5,
+						cy = p.height * 0.5
+					const scale = Math.min(p.width, p.height) * 0.45
+
+					// route visibility depends on coherence
+					// When coherent, "good" segments brighten and distractors fade
+					const goodBoost = p.lerp(0.35, 1.0, state.coherence)
+					const badFade = p.lerp(1.0, 0.25, state.coherence)
+
+					// dotted style
+					p.stroke(167, 255, 176, 120)
+					p.strokeWeight(1)
+
+					for (let i = 0; i < routes.length; i++) {
+						const seg = routes[i]
+						const isGood = i <= 2 // first 3 are "primary solution"
+						const vis = isGood ? goodBoost : badFade
+
+						// extra wobble if ship-rel / underpower
+						const wob =
+							(state.frame === "ship" ? 0.012 : 0) +
+							(state.output < 55 ? 0.01 : 0)
+						const wob2 = wob * 0.7
+
+						for (let j = 0; j < seg.length - 1; j++) {
+							let a = seg[j],
+								b = seg[j + 1]
+
+							// frame wobble
+							let ax = a[0] + p.sin(p.frameCount * 0.01 + j * 2) * wob
+							let ay = a[1] + p.cos(p.frameCount * 0.012 + j * 3) * wob2
+							let bx = b[0] + p.sin(p.frameCount * 0.01 + j * 2.7) * wob
+							let by = b[1] + p.cos(p.frameCount * 0.012 + j * 3.2) * wob2
+
+							// knob rotation
+							const [arx, ary] = applyRotation(ax, ay)
+							const [brx, bry] = applyRotation(bx, by)
+
+							// jitter
+							const jx1 = p.random(-jitter, jitter) * 0.002
+							const jy1 = p.random(-jitter, jitter) * 0.002
+							const jx2 = p.random(-jitter, jitter) * 0.002
+							const jy2 = p.random(-jitter, jitter) * 0.002
+
+							const x1 = cx + (arx + jx1) * scale
+							const y1 = cy + (ary + jy1) * scale
+							const x2 = cx + (brx + jx2) * scale
+							const y2 = cy + (bry + jy2) * scale
+
+							// dotted line by drawing short segments
+							const steps = 26
+							for (let s = 0; s < steps; s++) {
+								const t1 = s / steps
+								const t2 = (s + 0.55) / steps
+								if (s % 2 === 0) {
+									const dx1 = p.lerp(x1, x2, t1)
+									const dy1 = p.lerp(y1, y2, t1)
+									const dx2 = p.lerp(x1, x2, t2)
+									const dy2 = p.lerp(y1, y2, t2)
+									p.stroke(167, 255, 176, 120 * vis)
+									p.line(dx1, dy1, dx2, dy2)
+								}
+							}
+						}
+					}
+				}
+
+				function computeCoherence() {
+					// A simple scoring model (no hard mode):
+					// - Reactor output in a comfortable stable band
+					// - Temp not too hot
+					// - Galactic frame preferred
+					// - Filters that reduce noise
+					// - Knobs near a "solution" region (kept broad)
+
+					// reactor score
+					const out = state.output
+					const outScore = smoothBand(out, 55, 68) // wide band
+					const tempScore = 1 - smoothStep(state.temp, 76, 90)
+
+					// frame score
+					const frameScore =
+						state.frame === "galactic"
+							? 1
+							: state.frame === "ecliptic"
+								? 0.55
+								: 0.35
+
+					// filter score
+					let f = 0.0
+					f += state.obj.stellar ? 0.3 : 0
+					f -= state.obj.unknown ? 0.08 : 0 // unknown adds clutter
+					f -= state.obj.artificial ? 0.06 : 0
+
+					f += state.mag === "mid" ? 0.22 : state.mag === "bright" ? 0.12 : 0.08
+					f += state.spec.fgk ? 0.22 : 0
+					f -= state.spec.ob ? 0.05 : 0
+					f -= state.spec.m ? 0.05 : 0
+
+					f +=
+						state.conf === "verified"
+							? 0.22
+							: state.conf === "probable"
+								? 0.18
+								: 0.08
+
+					f = clamp(f, 0, 1)
+
+					// knob "target" (broad and forgiving)
+					const yawT = 9.0,
+						pitchT = -5.0,
+						rollT = -1.5
+					const knobScore =
+						gaussian(state.yaw, yawT, 6.5) *
+						gaussian(state.pitch, pitchT, 6.0) *
+						gaussian(state.roll, rollT, 7.0)
+
+					// combine
+					let score =
+						0.36 * outScore +
+						0.2 * tempScore +
+						0.18 * frameScore +
+						0.16 * f +
+						0.1 * knobScore
+					score = clamp(score, 0, 1)
+
+					// a little bonus if "reasonable" density (encourages filter use)
+					const density = state._shownStars || 200
+					const densityScore = gaussian(density, 120, 80) // broad
+					score = clamp(score * (0.85 + 0.15 * densityScore), 0, 1)
+
+					return score
+				}
+
+				function computeDrift(under, over, hot) {
+					let d = 0.2
+					if (state.frame === "ship") d += 0.35
+					if (state.frame === "ecliptic") d += 0.15
+					if (under) d += 0.25
+					if (over) d += 0.15
+					if (hot) d += 0.2
+					// more coherence reduces drift
+					d *= 1.05 - 0.65 * state.coherence
+					return clamp(d, 0, 1)
+				}
+
+				function smoothStep(x, edge0, edge1) {
+					const t = clamp((x - edge0) / (edge1 - edge0), 0, 1)
+					return t * t * (3 - 2 * t)
+				}
+
+				function smoothBand(x, lo, hi) {
+					// 1 inside band, rolls off outside
+					if (x < lo) return gaussian(x, lo, 10)
+					if (x > hi) return gaussian(x, hi, 10)
+					return 1
+				}
+
+				function gaussian(x, mu, sigma) {
+					const z = (x - mu) / sigma
+					return Math.exp(-0.5 * z * z)
+				}
+
+				function updateReadouts() {
+					// text readouts
+					document.getElementById("yawRead").textContent = fmtDeg(state.yaw)
+					document.getElementById("pitchRead").textContent = fmtDeg(state.pitch)
+					document.getElementById("rollRead").textContent = fmtDeg(state.roll)
+
+					// reactor bars
+					document.getElementById("outRead").textContent = `${state.output}%`
+					document.getElementById("tempRead").textContent = `${state.temp}%`
+					document.getElementById("outBar").style.width = `${state.output}%`
+					document.getElementById("tempBar").style.width = `${state.temp}%`
+
+					// status
+					const frameLabel =
+						state.frame === "ship"
+							? "SHIP-REL"
+							: state.frame === "galactic"
+								? "GALACTIC"
+								: "ECLIPTIC"
+					const sensorLabel =
+						state.output < 55
+							? "FALLBACK"
+							: state.output > 70
+								? "SATURATED"
+								: "NOMINAL"
+
+					const route =
+						state.coherence > 0.78
+							? "COHERENT"
+							: state.coherence > 0.55
+								? "UNSTABLE"
+								: "AMBIGUOUS"
+					const drift =
+						state.drift < 0.33
+							? "LOW"
+							: state.drift < 0.66
+								? "MODERATE"
+								: "HIGH"
+
+					const frameEl = document.getElementById("frameRead")
+					const sensorEl = document.getElementById("sensorRead")
+					const routeEl = document.getElementById("routeRead")
+					const driftEl = document.getElementById("driftRead")
+
+					frameEl.textContent = frameLabel
+					sensorEl.textContent = sensorLabel
+					routeEl.textContent = route
+					driftEl.textContent = drift
+
+					setTone(frameEl, state.frame === "galactic" ? "ok" : "warn")
+					setTone(
+						sensorEl,
+						sensorLabel === "NOMINAL"
+							? "ok"
+							: sensorLabel === "FALLBACK"
+								? "warn"
+								: "bad"
+					)
+					setTone(
+						routeEl,
+						route === "COHERENT" ? "ok" : route === "UNSTABLE" ? "warn" : "warn"
+					)
+					setTone(
+						driftEl,
+						drift === "LOW" ? "ok" : drift === "MODERATE" ? "warn" : "bad"
+					)
+				}
+
+				function setTone(el, tone) {
+					el.classList.remove("ok", "warn", "bad")
+					el.classList.add(tone)
+				}
+
+				function fmtDeg(v) {
+					const s = v >= 0 ? "+" : "−"
+					const n = Math.abs(v).toFixed(1)
+					return `${s}${n}°`
+				}
+			}
+
+			new p5(sketch)
+
+			// Initialize button group visuals
+			setBtnGroup("[data-mag]", "data-mag", state.mag)
+			setBtnGroup("[data-conf]", "data-conf", state.conf)
+			setBtnGroup("[data-frame]", "data-frame", state.frame)
+		</script>
+	</body>
+</html>

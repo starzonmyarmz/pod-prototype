@@ -1,0 +1,24 @@
+.ctl-switch {
+  position: relative;
+  input {
+    margin: 0;
+    opacity: 0;
+    padding: 0;
+    position: absolute;
+    visibility: hidden;
+  }
+
+  label {
+    background: var(--bevel);
+    display: block;
+    height: var(--space-8);
+    line-height: var(--space-8);
+    padding-inline: var(--space-4);
+    text-wrap: nowrap;
+  }
+
+  input:checked + label {
+    background: var(--ok);
+    color: var(--bg);
+  }
+}
