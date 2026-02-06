@@ -1,5 +1,6 @@
+import { computed } from "@preact/signals"
 import { Choice } from "./choice.jsx"
-import { Range } from "./range.jsx"
+import { Knob } from "./knob.jsx"
 import { Switch } from "./switch.jsx"
 import {
   yaw,
@@ -14,29 +15,104 @@ import {
   manom,
   confidence,
   frameSelect,
+  sensorStatus,
+  driftStatus,
+  routeCoherence,
+  STELLAR_COUNT,
+  ARTIFICIAL_COUNT,
+  UNKNOWN_COUNT,
+  TRANSFORM_SCALE,
+  STAR_COLOR,
+  ROUTE_OPACITY,
+  DISTRACTOR_OPACITY,
+  REACTOR_MAX,
+  ECLIPTIC_SKEW_X,
+  ECLIPTIC_SKEW_Y,
+  SHIP_REL_WOBBLE_SPEED,
+  SHIP_REL_WOBBLE_MAGNITUDE,
+  BLUR_BASE,
+  BLUR_TEMP_FACTOR,
+  BLUR_BRIGHT_BASE,
+  BLUR_BRIGHT_FACTOR,
+  SATURATION_BASE,
+  SATURATION_POWER_FACTOR,
 } from "../state/navigation.js"
+import { reactorTemp, reactorPower } from "../state/reactor.js"
 
 import "../styles/navigation.css"
 
-// Generate star field with positions and properties
-// Using 1.5x viewport size to prevent gaps during rotation
-function generateStars(count) {
+// Star generation - 1.5x viewport size to prevent gaps during rotation
+function generateStars(count, objectType) {
   const stars = []
-  const size = 1200 // 1.5x the 800 viewBox size
+  const size = 1200
   const offset = size / 2
+  const typeConfig = {
+    stellar: {
+      sizeRange: [0.5, 2.5],
+      opacityRange: [0.4, 0.9],
+      brightChance: 0.15,
+    },
+    artificial: {
+      sizeRange: [1, 1.5],
+      opacityRange: [0.6, 1],
+      brightChance: 0.3,
+    },
+    unknown: {
+      sizeRange: [0.3, 1.8],
+      opacityRange: [0.2, 0.7],
+      brightChance: 0.1,
+    },
+  }
+
+  const config = typeConfig[objectType]
+
   for (let i = 0; i < count; i++) {
+    const sizeMin = config.sizeRange[0]
+    const sizeMax = config.sizeRange[1]
+    const opacityMin = config.opacityRange[0]
+    const opacityMax = config.opacityRange[1]
+
+    const magnitudeValue = Math.random() * 99 + 1
+    const spectralRandom = Math.random()
+    let spectralType
+    if (spectralRandom < 0.5) {
+      spectralType = "fgk"
+    } else if (spectralRandom < 0.75) {
+      spectralType = "manom"
+    } else {
+      spectralType = "ob"
+    }
+    const confidenceRandom = Math.random()
+    let confidenceLevel
+    if (objectType === "stellar") {
+      if (confidenceRandom < 0.6) confidenceLevel = "verified"
+      else if (confidenceRandom < 0.9) confidenceLevel = "probable"
+      else confidenceLevel = "raw"
+    } else if (objectType === "artificial") {
+      if (confidenceRandom < 0.8) confidenceLevel = "verified"
+      else confidenceLevel = "probable"
+    } else {
+      if (confidenceRandom < 0.2) confidenceLevel = "verified"
+      else if (confidenceRandom < 0.5) confidenceLevel = "probable"
+      else confidenceLevel = "raw"
+    }
+
     stars.push({
       x: Math.random() * size - offset,
       y: Math.random() * size - offset,
-      size: Math.random() * 2 + 0.5,
-      opacity: Math.random() * 0.6 + 0.4,
-      type: Math.random() > 0.8 ? "bright" : "normal",
+      size: Math.random() * (sizeMax - sizeMin) + sizeMin,
+      opacity: Math.random() * (opacityMax - opacityMin) + opacityMin,
+      type: Math.random() < config.brightChance ? "bright" : "normal",
+      magnitude: magnitudeValue,
+      spectralType,
+      confidenceLevel,
+      objectType,
     })
   }
   return stars
 }
 
-// Constellation patterns (navigation routes and distractors)
+// Constellation patterns
 const constellations = [
   {
     name: "primary-route",
@@ -89,25 +165,30 @@ const constellations = [
   },
 ]
 
-const STAR_COUNT = 180
-const TRANSFORM_SCALE = 0.5
-const STAR_COLOR = "#a7ffb0"
-const ROUTE_OPACITY = 0.5
-const DISTRACTOR_OPACITY = 0.2
+const stellarStars = generateStars(STELLAR_COUNT, "stellar")
+const artificialStars = generateStars(ARTIFICIAL_COUNT, "artificial")
+const unknownStars = generateStars(UNKNOWN_COUNT, "unknown")
 
-const stars = generateStars(STAR_COUNT)
-
+// SVG filters affected by reactor state
 function SVGFilters() {
+  const tempNormalized = (reactorTemp.value / REACTOR_MAX) * 100
+  const baseBlur = BLUR_BASE + (tempNormalized / 100) * BLUR_TEMP_FACTOR
+  const brightBlur = BLUR_BRIGHT_BASE + (tempNormalized / 100) * BLUR_BRIGHT_FACTOR
+
+  const powerNormalized = (reactorPower.value / REACTOR_MAX) * 100
+  const saturationBoost =
+    SATURATION_BASE + (powerNormalized / 100) * SATURATION_POWER_FACTOR
+
   return (
     <defs>
       <filter id="star-glow" x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" />
+        <feGaussianBlur in="SourceGraphic" stdDeviation={baseBlur} />
         <feColorMatrix
           type="matrix"
-          values="0 0 0 0 0.65
+          values={`0 0 0 0 0.65
                   0 0 0 0 1
                   0 0 0 0 0.69
-                  0 0 0 1 0"
+                  0 0 0 ${saturationBoost} 0`}
         />
         <feMerge>
           <feMergeNode />
@@ -122,13 +203,13 @@ function SVGFilters() {
         width="300%"
         height="300%"
       >
-        <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
+        <feGaussianBlur in="SourceGraphic" stdDeviation={brightBlur} />
         <feColorMatrix
           type="matrix"
-          values="0 0 0 0 0.65
+          values={`0 0 0 0 0.65
                   0 0 0 0 1
                   0 0 0 0 0.69
-                  0 0 0 1.2 0"
+                  0 0 0 ${1.2 * saturationBoost} 0`}
         />
         <feMerge>
           <feMergeNode />
@@ -147,9 +228,9 @@ function ConstellationLine({ point, nextPoint, opacity }) {
       x2={nextPoint.x}
       y2={nextPoint.y}
       stroke={STAR_COLOR}
-      strokeWidth="1"
-      strokeOpacity={opacity}
-      strokeDasharray="4 4"
+      stroke-width="1"
+      stroke-opacity={opacity}
+      stroke-dasharray="4 4"
     />
   )
 }
@@ -192,15 +273,135 @@ function Constellation({ constellation, index }) {
   )
 }
 
+function Grid() {
+  const gridSpacing = 50
+  const gridLines = []
+
+  // Vertical lines
+  for (let x = -400; x <= 400; x += gridSpacing) {
+    gridLines.push(
+      <line
+        key={`v-${x}`}
+        x1={x}
+        y1={-400}
+        x2={x}
+        y2={400}
+        stroke={STAR_COLOR}
+        stroke-width="0.5"
+        stroke-opacity="0.25"
+      />
+    )
+  }
+
+  // Horizontal lines
+  for (let y = -400; y <= 400; y += gridSpacing) {
+    gridLines.push(
+      <line
+        key={`h-${y}`}
+        x1={-400}
+        y1={y}
+        x2={400}
+        y2={y}
+        stroke={STAR_COLOR}
+        stroke-width="0.5"
+        stroke-opacity="0.25"
+      />
+    )
+  }
+
+  // Center crosshair
+  return (
+    <g className="grid-overlay">
+      {gridLines}
+      {/* Center lines */}
+      <line
+        x1={0}
+        y1={-400}
+        x2={0}
+        y2={400}
+        stroke={STAR_COLOR}
+        stroke-width="1"
+        stroke-opacity="0.3"
+      />
+      <line
+        x1={-400}
+        y1={0}
+        x2={400}
+        y2={0}
+        stroke={STAR_COLOR}
+        stroke-width="1"
+        stroke-opacity="0.3"
+      />
+    </g>
+  )
+}
+
+// Frame transformations
+function getFrameTransform(frame) {
+  switch (frame) {
+    case "ship-rel":
+      const wobble =
+        Math.sin(Date.now() / SHIP_REL_WOBBLE_SPEED) * SHIP_REL_WOBBLE_MAGNITUDE
+      return `rotate(${wobble} 0 0)`
+    case "eliptic":
+      return `skewX(${ECLIPTIC_SKEW_X}) skewY(${ECLIPTIC_SKEW_Y})`
+    case "galactic":
+    default:
+      return ""
+  }
+}
+
+// Star filtering
+function getVisibleStars() {
+  const layers = []
+  if (stellar.value) layers.push(stellarStars)
+  if (artificial.value) layers.push(artificialStars)
+  if (unknown.value) layers.push(unknownStars)
+  return layers.flat()
+}
+
+function passesSpectralFilter(star) {
+  const spectralFilters = {
+    fgk: fgk.value,
+    ob: ob.value,
+    manom: manom.value,
+  }
+  return spectralFilters[star.spectralType] !== false
+}
+
+function passesConfidenceFilter(star) {
+  if (confidence.value === "raw") return true
+  if (confidence.value === "probable") return star.confidenceLevel !== "raw"
+  if (confidence.value === "verified") return star.confidenceLevel === "verified"
+  return true
+}
+
+function filterStars(stars) {
+  return stars.filter((star) => {
+    if (star.magnitude > magnitude.value) return false
+    if (!passesSpectralFilter(star)) return false
+    if (!passesConfidenceFilter(star)) return false
+    return true
+  })
+}
+
+const filteredStars = computed(() => {
+  const visibleStars = getVisibleStars()
+  return filterStars(visibleStars)
+})
+
+// Components
 function StarField() {
   const yawAngle = yaw.value
   const pitchSkew = pitch.value * TRANSFORM_SCALE
   const rollSkew = roll.value * TRANSFORM_SCALE
+  const frameTransform = getFrameTransform(frameSelect.value)
 
   const transform = `
     rotate(${yawAngle} 0 0)
     skewY(${pitchSkew})
     skewX(${rollSkew})
+    ${frameTransform}
   `
 
   return (
@@ -216,6 +417,8 @@ function StarField() {
         fillOpacity="0.9"
       />
 
+      <Grid />
+
       <g transform={transform}>
         {constellations.map((constellation, idx) => (
           <Constellation
@@ -225,9 +428,9 @@ function StarField() {
           />
         ))}
 
-        {stars.map((star, i) => (
+        {filteredStars.value.map((star, i) => (
           <circle
-            key={`star-${i}`}
+            key={`star-${star.objectType}-${i}`}
             cx={star.x}
             cy={star.y}
             r={star.size}
@@ -245,143 +448,216 @@ function StarField() {
   )
 }
 
+function StatusItem({ label, value }) {
+  return (
+    <div className="status-item">
+      <span className="status-label">{label}:</span>
+      <span className="status-value">{value}</span>
+    </div>
+  )
+}
+
+function NavStatus() {
+  return (
+    <div className="nav-status">
+      <StatusItem label="FRAME" value={frameSelect.value.toUpperCase()} />
+      <StatusItem label="SENSOR" value={sensorStatus.value} />
+      <StatusItem label="ROUTE" value={routeCoherence.value} />
+      <StatusItem label="DRIFT" value={driftStatus.value} />
+    </div>
+  )
+}
+
+function ReactorReadout() {
+  return (
+    <div className="reactor-strip">
+      <div className="reactor-control">
+        <label className="reactor-label">POWER</label>
+        <output className="reactor-value">{reactorPower.value}</output>
+      </div>
+      <div className="reactor-control">
+        <label className="reactor-label">CORE TEMP</label>
+        <output className="reactor-value">{reactorTemp.value}°</output>
+      </div>
+    </div>
+  )
+}
+
+function ObjectTypeFilters() {
+  return (
+    <fieldset className="ctl-group flow g3">
+      <legend>Object type</legend>
+      <Switch
+        value="stellar"
+        checked={stellar.value}
+        onChange={(e) => (stellar.value = e.target.checked)}
+      />
+      <Switch
+        value="artificial"
+        checked={artificial.value}
+        onChange={(e) => (artificial.value = e.target.checked)}
+      />
+      <Switch
+        value="unknown"
+        checked={unknown.value}
+        onChange={(e) => (unknown.value = e.target.checked)}
+      />
+    </fieldset>
+  )
+}
+
+function MagnitudeFilter() {
+  return (
+    <fieldset className="ctl-group stack g3">
+      <legend>Magnitude</legend>
+      <Knob
+        label="threshold"
+        min={1}
+        max={100}
+        value={magnitude.value}
+        onChange={(v) => (magnitude.value = v)}
+      />
+    </fieldset>
+  )
+}
+
+function SpectralFilters() {
+  return (
+    <fieldset className="ctl-group flow g3">
+      <legend>Spectral</legend>
+      <Switch
+        value="f/g/k"
+        checked={fgk.value}
+        onChange={(e) => (fgk.value = e.target.checked)}
+      />
+      <Switch
+        value="o/b"
+        checked={ob.value}
+        onChange={(e) => (ob.value = e.target.checked)}
+      />
+      <Switch
+        value="m/anom"
+        checked={manom.value}
+        onChange={(e) => (manom.value = e.target.checked)}
+      />
+    </fieldset>
+  )
+}
+
+function ConfidenceFilters() {
+  return (
+    <fieldset className="ctl-group flow g3">
+      <legend>Confidence</legend>
+      <Choice
+        value="raw"
+        name="confidence"
+        checked={confidence.value === "raw"}
+        onChange={(e) => (confidence.value = e.target.value)}
+      />
+      <Choice
+        value="probable"
+        name="confidence"
+        checked={confidence.value === "probable"}
+        onChange={(e) => (confidence.value = e.target.value)}
+      />
+      <Choice
+        value="verified"
+        name="confidence"
+        checked={confidence.value === "verified"}
+        onChange={(e) => (confidence.value = e.target.value)}
+      />
+    </fieldset>
+  )
+}
+
+function FrameSelectionFilters() {
+  return (
+    <fieldset className="ctl-group flow g3">
+      <legend>Frame select</legend>
+      <Choice
+        value="ship-rel"
+        name="frame-select"
+        checked={frameSelect.value === "ship-rel"}
+        onChange={(e) => (frameSelect.value = e.target.value)}
+      />
+      <Choice
+        value="galactic"
+        name="frame-select"
+        checked={frameSelect.value === "galactic"}
+        onChange={(e) => (frameSelect.value = e.target.value)}
+      />
+      <Choice
+        value="eliptic"
+        name="frame-select"
+        checked={frameSelect.value === "eliptic"}
+        onChange={(e) => (frameSelect.value = e.target.value)}
+      />
+    </fieldset>
+  )
+}
+
+function OrientationControls() {
+  return (
+    <fieldset className="ctl-group stack g3">
+      <legend>Orientation</legend>
+      <div className="knob-group">
+        <Knob
+          label="yaw"
+          min={-180}
+          max={180}
+          value={yaw.value}
+          onChange={(v) => (yaw.value = v)}
+        />
+        <Knob
+          label="pitch"
+          min={-45}
+          max={45}
+          value={pitch.value}
+          onChange={(v) => (pitch.value = v)}
+        />
+        <Knob
+          label="roll"
+          min={-45}
+          max={45}
+          value={roll.value}
+          onChange={(v) => (roll.value = v)}
+        />
+      </div>
+    </fieldset>
+  )
+}
+
+function NavFilters() {
+  return (
+    <section id="nav-filters" class="stack g3">
+      <ObjectTypeFilters />
+      <MagnitudeFilter />
+      <SpectralFilters />
+      <ConfidenceFilters />
+      <FrameSelectionFilters />
+      <OrientationControls />
+    </section>
+  )
+}
+
+function NavPlotter() {
+  return (
+    <section id="nav-plotter">
+      <StarField />
+      <NavStatus />
+      <ReactorReadout />
+      <button id="nav-confirm" className="btn-confirm">
+        CONFIRM
+      </button>
+    </section>
+  )
+}
+
 export function Navigation() {
   return (
     <main id="nav">
-      <section id="nav-filters" class="stack g3">
-        <fieldset className="ctl-group flow g3">
-          <legend>Object type</legend>
-          <Switch
-            value="stellar"
-            checked={stellar.value}
-            onChange={(e) => (stellar.value = e.target.checked)}
-          />
-          <Switch
-            value="artificial"
-            checked={artificial.value}
-            onChange={(e) => (artificial.value = e.target.checked)}
-          />
-          <Switch
-            value="unknown"
-            checked={unknown.value}
-            onChange={(e) => (unknown.value = e.target.checked)}
-          />
-        </fieldset>
-
-        <fieldset className="ctl-group flow g3">
-          <legend>Magnitude</legend>
-          <Choice
-            value="bright"
-            name="magnitude"
-            checked={magnitude.value === "bright"}
-            onChange={(e) => (magnitude.value = e.target.value)}
-          />
-          <Choice
-            value="mid"
-            name="magnitude"
-            checked={magnitude.value === "mid"}
-            onChange={(e) => (magnitude.value = e.target.value)}
-          />
-          <Choice
-            value="dim"
-            name="magnitude"
-            checked={magnitude.value === "dim"}
-            onChange={(e) => (magnitude.value = e.target.value)}
-          />
-        </fieldset>
-
-        <fieldset className="ctl-group flow g3">
-          <legend>Spectral</legend>
-          <Switch
-            value="f/g/k"
-            checked={fgk.value}
-            onChange={(e) => (fgk.value = e.target.checked)}
-          />
-          <Switch
-            value="o/b"
-            checked={ob.value}
-            onChange={(e) => (ob.value = e.target.checked)}
-          />
-          <Switch
-            value="m/anom"
-            checked={manom.value}
-            onChange={(e) => (manom.value = e.target.checked)}
-          />
-        </fieldset>
-
-        <fieldset className="ctl-group flow g3">
-          <legend>Confidence</legend>
-          <Choice
-            value="raw"
-            name="confidence"
-            checked={confidence.value === "raw"}
-            onChange={(e) => (confidence.value = e.target.value)}
-          />
-          <Choice
-            value="probable"
-            name="confidence"
-            checked={confidence.value === "probable"}
-            onChange={(e) => (confidence.value = e.target.value)}
-          />
-          <Choice
-            value="verified"
-            name="confidence"
-            checked={confidence.value === "verified"}
-            onChange={(e) => (confidence.value = e.target.value)}
-          />
-        </fieldset>
-
-        <fieldset className="ctl-group flow g3">
-          <legend>Frame select</legend>
-          <Choice
-            value="ship-rel"
-            name="frame-select"
-            checked={frameSelect.value === "ship-rel"}
-            onChange={(e) => (frameSelect.value = e.target.value)}
-          />
-          <Choice
-            value="galactic"
-            name="frame-select"
-            checked={frameSelect.value === "galactic"}
-            onChange={(e) => (frameSelect.value = e.target.value)}
-          />
-          <Choice
-            value="eliptic"
-            name="frame-select"
-            checked={frameSelect.value === "eliptic"}
-            onChange={(e) => (frameSelect.value = e.target.value)}
-          />
-        </fieldset>
-
-        <fieldset className="ctl-group stack g3">
-          <legend>Orientation</legend>
-          <Range
-            label="yaw"
-            min="-20"
-            max="20"
-            defaultValue={yaw.value}
-            onChange={(v) => (yaw.value = v)}
-          />
-          <Range
-            label="pitch"
-            min="-20"
-            max="20"
-            defaultValue={pitch.value}
-            onChange={(v) => (pitch.value = v)}
-          />
-          <Range
-            label="roll"
-            min="-20"
-            max="20"
-            defaultValue={roll.value}
-            onChange={(v) => (roll.value = v)}
-          />
-        </fieldset>
-      </section>
-
-      <section id="nav-plotter">
-        <StarField />
-      </section>
+      <NavFilters />
+      <NavPlotter />
     </main>
   )
 }
