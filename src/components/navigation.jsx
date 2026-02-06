@@ -173,7 +173,8 @@ const unknownStars = generateStars(UNKNOWN_COUNT, "unknown")
 function SVGFilters() {
   const tempNormalized = (reactorTemp.value / REACTOR_MAX) * 100
   const baseBlur = BLUR_BASE + (tempNormalized / 100) * BLUR_TEMP_FACTOR
-  const brightBlur = BLUR_BRIGHT_BASE + (tempNormalized / 100) * BLUR_BRIGHT_FACTOR
+  const brightBlur =
+    BLUR_BRIGHT_BASE + (tempNormalized / 100) * BLUR_BRIGHT_FACTOR
 
   const powerNormalized = (reactorPower.value / REACTOR_MAX) * 100
   const saturationBoost =
@@ -372,7 +373,8 @@ function passesSpectralFilter(star) {
 function passesConfidenceFilter(star) {
   if (confidence.value === "raw") return true
   if (confidence.value === "probable") return star.confidenceLevel !== "raw"
-  if (confidence.value === "verified") return star.confidenceLevel === "verified"
+  if (confidence.value === "verified")
+    return star.confidenceLevel === "verified"
   return true
 }
 
