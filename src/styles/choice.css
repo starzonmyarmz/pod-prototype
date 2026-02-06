@@ -11,8 +11,8 @@
   label {
     background: var(--bevel);
     display: block;
-    height: var(--space-8);
-    line-height: var(--space-8);
+    height: var(--space-6);
+    line-height: var(--space-6);
     padding-inline: var(--space-4);
     text-wrap: nowrap;
   }

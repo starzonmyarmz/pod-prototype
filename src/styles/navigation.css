@@ -1,8 +1,8 @@
 #nav {
   display: grid;
   gap: var(--space-3);
-  grid-template-columns: 1fr 2fr 1fr;
-  grid-template-areas: "filters plotter routing";
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "filters plotter";
 }
 
 #nav-filters {
@@ -10,9 +10,6 @@
 }
 
 #nav-plotter {
+  aspect-ratio: 1;
   grid-area: plotter;
-}
-
-#nav-routing {
-  grid-area: routing;
 }

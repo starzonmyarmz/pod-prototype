@@ -16,12 +16,15 @@ import {
 import "../styles/navigation.css"
 
 // Generate star field with positions and properties
+// Using 1.5x viewport size to prevent gaps during rotation
 function generateStars(count) {
   const stars = []
+  const size = 1200 // 1.5x the 800 viewBox size
+  const offset = size / 2
   for (let i = 0; i < count; i++) {
     stars.push({
-      x: Math.random() * 800 - 400,
-      y: Math.random() * 600 - 300,
+      x: Math.random() * size - offset,
+      y: Math.random() * size - offset,
       size: Math.random() * 2 + 0.5,
       opacity: Math.random() * 0.6 + 0.4,
       type: Math.random() > 0.8 ? "bright" : "normal",
@@ -198,11 +201,7 @@ function StarField() {
   `
 
   return (
-    <svg
-      viewBox="-400 -300 800 600"
-      className="star-plotter"
-      style={{ width: '100%', height: '100%' }}
-    >
+    <svg viewBox="-400 -400 800 800" className="star-plotter">
       <SVGFilters />
 
       <rect
@@ -298,13 +297,7 @@ export function Navigation() {
           <Choice value="probable" name="confidence" checked />
           <Choice value="verified" name="confidence" />
         </fieldset>
-      </section>
 
-      <section id="nav-plotter">
-        <StarField />
-      </section>
-
-      <section id="nav-routing" class="stack g3">
         <fieldset className="ctl-group flow g3">
           <legend>Frame select</legend>
           <Choice value="ship-rel" name="frame-select" />
@@ -336,6 +329,10 @@ export function Navigation() {
             onChange={(v) => (roll.value = v)}
           />
         </fieldset>
+      </section>
+
+      <section id="nav-plotter">
+        <StarField />
       </section>
     </main>
   )
