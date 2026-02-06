@@ -8,9 +8,12 @@ import {
   stellar,
   artificial,
   unknown,
+  magnitude,
   fgk,
   ob,
   manom,
+  confidence,
+  frameSelect,
 } from "../state/navigation.js"
 
 import "../styles/navigation.css"
@@ -267,9 +270,24 @@ export function Navigation() {
 
         <fieldset className="ctl-group flow g3">
           <legend>Magnitude</legend>
-          <Choice value="bright" name="magnitude" />
-          <Choice value="mid" name="magnitude" />
-          <Choice value="dim" name="magnitude" checked />
+          <Choice
+            value="bright"
+            name="magnitude"
+            checked={magnitude.value === "bright"}
+            onChange={(e) => (magnitude.value = e.target.value)}
+          />
+          <Choice
+            value="mid"
+            name="magnitude"
+            checked={magnitude.value === "mid"}
+            onChange={(e) => (magnitude.value = e.target.value)}
+          />
+          <Choice
+            value="dim"
+            name="magnitude"
+            checked={magnitude.value === "dim"}
+            onChange={(e) => (magnitude.value = e.target.value)}
+          />
         </fieldset>
 
         <fieldset className="ctl-group flow g3">
@@ -293,16 +311,46 @@ export function Navigation() {
 
         <fieldset className="ctl-group flow g3">
           <legend>Confidence</legend>
-          <Choice value="raw" name="confidence" />
-          <Choice value="probable" name="confidence" checked />
-          <Choice value="verified" name="confidence" />
+          <Choice
+            value="raw"
+            name="confidence"
+            checked={confidence.value === "raw"}
+            onChange={(e) => (confidence.value = e.target.value)}
+          />
+          <Choice
+            value="probable"
+            name="confidence"
+            checked={confidence.value === "probable"}
+            onChange={(e) => (confidence.value = e.target.value)}
+          />
+          <Choice
+            value="verified"
+            name="confidence"
+            checked={confidence.value === "verified"}
+            onChange={(e) => (confidence.value = e.target.value)}
+          />
         </fieldset>
 
         <fieldset className="ctl-group flow g3">
           <legend>Frame select</legend>
-          <Choice value="ship-rel" name="frame-select" />
-          <Choice value="galactic" name="frame-select" checked />
-          <Choice value="eliptic" name="frame-select" />
+          <Choice
+            value="ship-rel"
+            name="frame-select"
+            checked={frameSelect.value === "ship-rel"}
+            onChange={(e) => (frameSelect.value = e.target.value)}
+          />
+          <Choice
+            value="galactic"
+            name="frame-select"
+            checked={frameSelect.value === "galactic"}
+            onChange={(e) => (frameSelect.value = e.target.value)}
+          />
+          <Choice
+            value="eliptic"
+            name="frame-select"
+            checked={frameSelect.value === "eliptic"}
+            onChange={(e) => (frameSelect.value = e.target.value)}
+          />
         </fieldset>
 
         <fieldset className="ctl-group stack g3">
