@@ -1,7 +1,17 @@
 import { Choice } from "./choice.jsx"
 import { Range } from "./range.jsx"
 import { Switch } from "./switch.jsx"
-import { yaw, pitch, roll, stellar, artificial, unknown, fgk, ob, manom } from "../state/navigation.js"
+import {
+  yaw,
+  pitch,
+  roll,
+  stellar,
+  artificial,
+  unknown,
+  fgk,
+  ob,
+  manom,
+} from "../state/navigation.js"
 
 import "../styles/navigation.css"
 
@@ -14,7 +24,7 @@ function generateStars(count) {
       y: Math.random() * 600 - 300,
       size: Math.random() * 2 + 0.5,
       opacity: Math.random() * 0.6 + 0.4,
-      type: Math.random() > 0.8 ? 'bright' : 'normal'
+      type: Math.random() > 0.8 ? "bright" : "normal",
     })
   }
   return stars
@@ -23,54 +33,54 @@ function generateStars(count) {
 // Constellation patterns (navigation routes and distractors)
 const constellations = [
   {
-    name: 'primary-route',
+    name: "primary-route",
     points: [
       { x: -150, y: -80 },
       { x: -50, y: -140 },
       { x: 80, y: -40 },
       { x: 20, y: 100 },
-      { x: -100, y: 70 }
+      { x: -100, y: 70 },
     ],
-    isPrimary: true
+    isPrimary: true,
   },
   {
-    name: 'secondary-route',
+    name: "secondary-route",
     points: [
       { x: -50, y: -140 },
       { x: 140, y: -160 },
-      { x: 220, y: -40 }
+      { x: 220, y: -40 },
     ],
-    isPrimary: true
+    isPrimary: true,
   },
   {
-    name: 'tertiary-route',
+    name: "tertiary-route",
     points: [
       { x: 20, y: 100 },
       { x: 220, y: 140 },
-      { x: 300, y: 40 }
+      { x: 300, y: 40 },
     ],
-    isPrimary: true
+    isPrimary: true,
   },
   {
-    name: 'distractor-1',
+    name: "distractor-1",
     points: [
       { x: -240, y: 140 },
       { x: -80, y: 220 },
       { x: 80, y: 180 },
-      { x: 180, y: 260 }
+      { x: 180, y: 260 },
     ],
-    isPrimary: false
+    isPrimary: false,
   },
   {
-    name: 'distractor-2',
+    name: "distractor-2",
     points: [
       { x: -220, y: -220 },
       { x: -60, y: -260 },
       { x: 100, y: -220 },
-      { x: 220, y: -260 }
+      { x: 220, y: -260 },
     ],
-    isPrimary: false
-  }
+    isPrimary: false,
+  },
 ]
 
 const STAR_COUNT = 180
@@ -99,7 +109,13 @@ function SVGFilters() {
         </feMerge>
       </filter>
 
-      <filter id="star-glow-bright" x="-100%" y="-100%" width="300%" height="300%">
+      <filter
+        id="star-glow-bright"
+        x="-100%"
+        y="-100%"
+        width="300%"
+        height="300%"
+      >
         <feGaussianBlur in="SourceGraphic" stdDeviation="3" />
         <feColorMatrix
           type="matrix"
@@ -189,7 +205,14 @@ function StarField() {
     >
       <SVGFilters />
 
-      <rect x="-400" y="-300" width="800" height="600" fill="#000" fillOpacity="0.9" />
+      <rect
+        x="-400"
+        y="-400"
+        width="800"
+        height="800"
+        fill="#000"
+        fillOpacity="0.9"
+      />
 
       <g transform={transform}>
         {constellations.map((constellation, idx) => (
@@ -208,7 +231,11 @@ function StarField() {
             r={star.size}
             fill={STAR_COLOR}
             fillOpacity={star.opacity}
-            filter={star.type === 'bright' ? 'url(#star-glow-bright)' : 'url(#star-glow)'}
+            filter={
+              star.type === "bright"
+                ? "url(#star-glow-bright)"
+                : "url(#star-glow)"
+            }
           />
         ))}
       </g>
