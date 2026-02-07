@@ -45,7 +45,7 @@ export const magnitude = signal(50)
 // Spectral type filters
 export const fgk = signal(true)
 export const ob = signal(false)
-export const manom = signal(false)
+export const anom = signal(false)
 
 // Confidence filter
 export const confidence = signal("probable")

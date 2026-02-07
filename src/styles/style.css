@@ -78,6 +78,10 @@ textarea {
   flex-direction: column;
 }
 
+.fill > * {
+  flex-grow: 1;
+}
+
 .g1 {
   gap: var(--space-1);
 }

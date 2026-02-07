@@ -7,7 +7,7 @@
 }
 
 #reactor-status {
-  font-size: 20px;
+  font-size: var(--space-5);
   grid-area: output;
 }
 
@@ -23,12 +23,12 @@
   }
 
   .tachometer-gauge {
-    width: 200px;
-    height: 120px;
+    width: calc(var(--space-8) * 4 + var(--space-4));
+    height: calc(var(--space-8) * 2 + var(--space-5));
   }
 
   .tachometer-needle {
-    filter: drop-shadow(0 0 3px currentColor);
+    filter: drop-shadow(0 0 var(--space-1) currentColor);
     transition: transform 0.2s ease-out;
   }
 
@@ -37,7 +37,7 @@
   }
 
   .tachometer-reading {
-    font-size: 20px;
+    font-size: var(--space-5);
     font-weight: bold;
     font-variant-numeric: tabular-nums;
     min-width: 3ch;
@@ -45,7 +45,7 @@
   }
 
   .temp-exploded {
-    font-size: 24px;
+    font-size: var(--space-5);
     font-weight: bold;
     padding: var(--space-2);
     border-radius: var(--space-1);

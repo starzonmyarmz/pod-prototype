@@ -123,7 +123,7 @@ function ReactorTemp() {
 
 function ReactorSwitches({ onToggle }) {
   return (
-    <section id="reactor-switches" class="flow g3">
+    <section id="reactor-switches" class="flow g5">
       {SWITCH_VALUES.map((value) => (
         <Switch
           key={value}

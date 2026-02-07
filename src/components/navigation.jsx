@@ -1,6 +1,6 @@
 import { computed } from "@preact/signals"
-import { Choice } from "./choice.jsx"
 import { Knob } from "./knob.jsx"
+import { DiscreteKnob } from "./discrete-knob.jsx"
 import { Switch } from "./switch.jsx"
 import {
   yaw,
@@ -12,7 +12,7 @@ import {
   magnitude,
   fgk,
   ob,
-  manom,
+  anom,
   confidence,
   frameSelect,
   sensorStatus,
@@ -78,7 +78,7 @@ function generateStars(count, objectType) {
     if (spectralRandom < 0.5) {
       spectralType = "fgk"
     } else if (spectralRandom < 0.75) {
-      spectralType = "manom"
+      spectralType = "anom"
     } else {
       spectralType = "ob"
     }
@@ -365,7 +365,7 @@ function passesSpectralFilter(star) {
   const spectralFilters = {
     fgk: fgk.value,
     ob: ob.value,
-    manom: manom.value,
+    anom: anom.value,
   }
   return spectralFilters[star.spectralType] !== false
 }
@@ -487,33 +487,35 @@ function ReactorReadout() {
 
 function ObjectTypeFilters() {
   return (
-    <fieldset className="ctl-group flow g3">
+    <fieldset className="ctl-group">
       <legend>Object type</legend>
-      <Switch
-        value="stellar"
-        checked={stellar.value}
-        onChange={(e) => (stellar.value = e.target.checked)}
-      />
-      <Switch
-        value="artificial"
-        checked={artificial.value}
-        onChange={(e) => (artificial.value = e.target.checked)}
-      />
-      <Switch
-        value="unknown"
-        checked={unknown.value}
-        onChange={(e) => (unknown.value = e.target.checked)}
-      />
+      <div class="flow fill">
+        <Switch
+          value="stlr"
+          checked={stellar.value}
+          onChange={(e) => (stellar.value = e.target.checked)}
+        />
+        <Switch
+          value="artf"
+          checked={artificial.value}
+          onChange={(e) => (artificial.value = e.target.checked)}
+        />
+        <Switch
+          value="unkn"
+          checked={unknown.value}
+          onChange={(e) => (unknown.value = e.target.checked)}
+        />
+      </div>
     </fieldset>
   )
 }
 
 function MagnitudeFilter() {
   return (
-    <fieldset className="ctl-group stack g3">
+    <fieldset className="ctl-group">
       <legend>Magnitude</legend>
       <Knob
-        label="threshold"
+        label=""
         min={1}
         max={100}
         value={magnitude.value}
@@ -525,74 +527,72 @@ function MagnitudeFilter() {
 
 function SpectralFilters() {
   return (
-    <fieldset className="ctl-group flow g3">
+    <fieldset className="ctl-group">
       <legend>Spectral</legend>
-      <Switch
-        value="f/g/k"
-        checked={fgk.value}
-        onChange={(e) => (fgk.value = e.target.checked)}
-      />
-      <Switch
-        value="o/b"
-        checked={ob.value}
-        onChange={(e) => (ob.value = e.target.checked)}
-      />
-      <Switch
-        value="m/anom"
-        checked={manom.value}
-        onChange={(e) => (manom.value = e.target.checked)}
-      />
+      <div class="flow fill">
+        <Switch
+          value="fgk"
+          checked={fgk.value}
+          onChange={(e) => (fgk.value = e.target.checked)}
+        />
+        <Switch
+          value="ob"
+          checked={ob.value}
+          onChange={(e) => (ob.value = e.target.checked)}
+        />
+        <Switch
+          value="anom"
+          checked={anom.value}
+          onChange={(e) => (anom.value = e.target.checked)}
+        />
+      </div>
     </fieldset>
   )
 }
 
 function ConfidenceFilters() {
+  const confidenceMap = {
+    raw: "raw",
+    prob: "probable",
+    vrfd: "verified",
+  }
+  const reverseMap = {
+    raw: "raw",
+    probable: "prob",
+    verified: "vrfd",
+  }
   return (
-    <fieldset className="ctl-group flow g3">
+    <fieldset className="ctl-group">
       <legend>Confidence</legend>
-      <Choice
-        value="raw"
-        name="confidence"
-        checked={confidence.value === "raw"}
-        onChange={(e) => (confidence.value = e.target.value)}
-      />
-      <Choice
-        value="probable"
-        name="confidence"
-        checked={confidence.value === "probable"}
-        onChange={(e) => (confidence.value = e.target.value)}
-      />
-      <Choice
-        value="verified"
-        name="confidence"
-        checked={confidence.value === "verified"}
-        onChange={(e) => (confidence.value = e.target.value)}
+      <DiscreteKnob
+        label=""
+        options={["raw", "prob", "vrfd"]}
+        value={reverseMap[confidence.value]}
+        onChange={(v) => (confidence.value = confidenceMap[v])}
       />
     </fieldset>
   )
 }
 
 function FrameSelectionFilters() {
+  const frameMap = {
+    ship: "ship-rel",
+    glct: "galactic",
+    elpt: "eliptic",
+  }
+  const reverseMap = {
+    "ship-rel": "ship",
+    galactic: "glct",
+    eliptic: "elpt",
+  }
   return (
-    <fieldset className="ctl-group flow g3">
+    <fieldset className="ctl-group">
       <legend>Frame select</legend>
-      <Choice
-        value="ship-rel"
-        name="frame-select"
-        checked={frameSelect.value === "ship-rel"}
-        onChange={(e) => (frameSelect.value = e.target.value)}
-      />
-      <Choice
-        value="galactic"
-        name="frame-select"
-        checked={frameSelect.value === "galactic"}
-        onChange={(e) => (frameSelect.value = e.target.value)}
-      />
-      <Choice
-        value="eliptic"
-        name="frame-select"
-        checked={frameSelect.value === "eliptic"}
-        onChange={(e) => (frameSelect.value = e.target.value)}
+      <DiscreteKnob
+        label=""
+        options={["ship", "glct", "elpt"]}
+        value={reverseMap[frameSelect.value]}
+        onChange={(v) => (frameSelect.value = frameMap[v])}
       />
     </fieldset>
   )
@@ -600,7 +600,7 @@ function FrameSelectionFilters() {
 
 function OrientationControls() {
   return (
-    <fieldset className="ctl-group stack g3">
+    <fieldset className="ctl-group">
       <legend>Orientation</legend>
       <div className="knob-group">
         <Knob
@@ -632,26 +632,34 @@ function OrientationControls() {
 function NavFilters() {
   return (
     <section id="nav-filters" class="stack g3">
-      <ObjectTypeFilters />
-      <MagnitudeFilter />
-      <SpectralFilters />
-      <ConfidenceFilters />
-      <FrameSelectionFilters />
+      <div className="flow fill g3">
+        <ObjectTypeFilters />
+        <SpectralFilters />
+      </div>
+      <div class="flow g3">
+        <MagnitudeFilter />
+        <ConfidenceFilters />
+        <FrameSelectionFilters />
+      </div>
       <OrientationControls />
+      <button id="nav-confirm" className="btn-confirm">
+        CONFIRM
+      </button>
     </section>
   )
 }
 
 function NavPlotter() {
   return (
-    <section id="nav-plotter">
-      <StarField />
-      <NavStatus />
-      <ReactorReadout />
-      <button id="nav-confirm" className="btn-confirm">
-        CONFIRM
-      </button>
-    </section>
+    <>
+      <section id="nav-plotter">
+        <StarField />
+      </section>
+      <section id="nav-readout">
+        <NavStatus />
+        <ReactorReadout />
+      </section>
+    </>
   )
 }
 
