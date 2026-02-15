@@ -1,6 +1,7 @@
 import { Switch } from "./switch.jsx"
 import {
   SWITCH_VALUES,
+  PHASE_THRESHOLDS,
   checkedSwitches,
   reactorOverride,
   reactorPhase,
@@ -54,24 +55,28 @@ function ReactorStatus() {
   )
 }
 
+// Calculate color based on temperature percentage (blue → green → yellow → orange → red)
+function getTempColor(pct) {
+  if (pct < 25) return `hsl(${200 + pct * 1.6}, 80%, 60%)` // blue to cyan
+  if (pct < 50) return `hsl(${240 - pct * 2.4}, 70%, 50%)` // cyan to green
+  if (pct < 75) return `hsl(${120 - (pct - 50) * 2.4}, 80%, 50%)` // green to yellow/orange
+  return `hsl(${60 - (pct - 75) * 2.4}, 90%, 55%)` // orange to red
+}
+
 function ReactorTemp() {
   const temp = reactorTemp.value
   const exploded = reactorExploded.value
+  const phase = reactorPhase.value
   const maxTemp = SWITCH_VALUES.reduce((sum, val) => sum + val, 0)
 
-  // Calculate percentage and angle for the gauge
-  const percentage = (temp / maxTemp) * 100
+  // Calculate percentage with threshold as median (50%)
+  // Scale: 0 to threshold*2, with threshold at 50%
+  const threshold = PHASE_THRESHOLDS[phase] || maxTemp
+  const scaleMax = Math.min(threshold * 2, maxTemp)
+  const percentage = Math.min((temp / scaleMax) * 100, 100)
   const angle = (percentage / 100) * 180 - 90 // -90 to 90 degrees
 
-  // Calculate color based on temperature (blue → green → yellow → orange → red)
-  const getColor = (pct) => {
-    if (pct < 25) return `hsl(${200 + pct * 1.6}, 80%, 60%)` // blue to cyan
-    if (pct < 50) return `hsl(${240 - pct * 2.4}, 70%, 50%)` // cyan to green
-    if (pct < 75) return `hsl(${120 - (pct - 50) * 2.4}, 80%, 50%)` // green to yellow/orange
-    return `hsl(${60 - (pct - 75) * 2.4}, 90%, 55%)` // orange to red
-  }
-
-  const needleColor = getColor(percentage)
+  const needleColor = getTempColor(percentage)
 
   return (
     <section id="reactor-temp" class="stack g2">

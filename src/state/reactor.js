@@ -3,7 +3,7 @@ import { signal, computed, effect } from "@preact/signals"
 // Game constants
 export const SWITCH_VALUES = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
-const PHASE_THRESHOLDS = {
+export const PHASE_THRESHOLDS = {
   0: 31,
   1: 124,
   2: 452,
@@ -53,6 +53,7 @@ export const reactorStatus = computed(() => {
   if (temp > threshold) return "over powered"
   if (temp === threshold) return "stable"
   if (temp >= weak) return "weak"
+  if (phase === 0 && temp === 0) return ""
   return "under powered"
 })
 
@@ -81,7 +82,7 @@ const updateTempValue = (targetPower, isIncreasing) => {
 }
 
 const hasReachedTarget = (targetPower, isIncreasing) => {
-  const currentTemp = reactorTemp.peek ? reactorTemp.peek() : reactorTemp.value
+  const currentTemp = reactorTemp.peek()
   return isIncreasing ? currentTemp >= targetPower : currentTemp <= targetPower
 }
 
@@ -135,18 +136,17 @@ function setupTemperatureUpdates() {
     const tempDifference = power - currentTemp
 
     if (tempDifference === 0) return
-    ;(async () => {
-      if (reactorOverride.value) return
 
-      const targetPower = reactorPower.value
-      if (targetPower !== power) return
+    if (reactorOverride.value) return
 
-      if (targetPower > reactorTemp.peek()) {
-        scheduleAcceleratingUpdates(targetPower, true)
-      } else if (targetPower < reactorTemp.peek()) {
-        scheduleAcceleratingUpdates(targetPower, false)
-      }
-    })()
+    const targetPower = reactorPower.value
+    if (targetPower !== power) return
+
+    if (targetPower > reactorTemp.peek()) {
+      scheduleAcceleratingUpdates(targetPower, true)
+    } else if (targetPower < reactorTemp.peek()) {
+      scheduleAcceleratingUpdates(targetPower, false)
+    }
   })
 }
 

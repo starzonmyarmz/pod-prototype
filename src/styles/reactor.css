@@ -49,8 +49,8 @@
     font-weight: bold;
     padding: var(--space-2);
     border-radius: var(--space-1);
-    color: #f44336;
-    background: rgba(244, 67, 54, 0.1);
+    color: var(--alarm-solid);
+    background: var(--alarm-10);
     animation: pulse-red 1s infinite;
   }
 

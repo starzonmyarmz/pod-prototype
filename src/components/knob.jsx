@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect } from "preact/hooks"
-import "../styles/knob.css"
 
 export function Knob({ label, min, max, value, onChange }) {
   const knobRef = useRef(null)
@@ -19,39 +18,37 @@ export function Knob({ label, min, max, value, onChange }) {
     setStartValue(value)
   }
 
-  const handleMouseMove = (e) => {
-    if (!isDragging) return
-
-    const deltaY = startY - e.clientY // Inverted: up increases, down decreases
-    const sensitivity = 0.5 // Adjust sensitivity
-    const deltaValue = (deltaY * sensitivity * range) / 100
-
-    const newValue = Math.max(min, Math.min(max, startValue + deltaValue))
-    onChange?.(Math.round(newValue))
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
   const handleDoubleClick = () => {
     onChange?.(0)
   }
 
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove)
-      window.addEventListener("mouseup", handleMouseUp)
-      return () => {
-        window.removeEventListener("mousemove", handleMouseMove)
-        window.removeEventListener("mouseup", handleMouseUp)
-      }
+    if (!isDragging) return
+
+    const handleMouseMove = (e) => {
+      const deltaY = startY - e.clientY // Inverted: up increases, down decreases
+      const sensitivity = 0.5 // Adjust sensitivity
+      const deltaValue = (deltaY * sensitivity * range) / 100
+
+      const newValue = Math.max(min, Math.min(max, startValue + deltaValue))
+      onChange?.(Math.round(newValue))
     }
-  }, [isDragging, startY, startValue])
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [isDragging, startY, startValue, range, min, max, onChange])
 
   return (
     <div className="ctl-knob">
-      <label>{label}</label>
       <div
         ref={knobRef}
         className={`knob ${isDragging ? "dragging" : ""}`}
@@ -102,17 +99,12 @@ export function Knob({ label, min, max, value, onChange }) {
               y1="50"
               x2="50"
               y2="25"
-              stroke="var(--accent-color, #a7ffb0)"
+              stroke="var(--crt)"
               strokeWidth="3"
               strokeLinecap="round"
             />
             {/* Indicator dot */}
-            <circle
-              cx="50"
-              cy="25"
-              r="3"
-              fill="var(--accent-color, #a7ffb0)"
-            />
+            <circle cx="50" cy="25" r="3" fill="var(--crt)" />
           </g>
         </svg>
       </div>

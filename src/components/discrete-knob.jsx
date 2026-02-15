@@ -1,5 +1,4 @@
 import { useRef, useState, useEffect } from "preact/hooks"
-import "../styles/discrete-knob.css"
 
 export function DiscreteKnob({ label, options, value, onChange }) {
   const knobRef = useRef(null)
@@ -22,45 +21,43 @@ export function DiscreteKnob({ label, options, value, onChange }) {
     setStartIndex(currentIndex)
   }
 
-  const handleMouseMove = (e) => {
-    if (!isDragging) return
-
-    const deltaY = startY - e.clientY // Inverted: up increases, down decreases
-    const sensitivity = 0.3 // Lower sensitivity for discrete steps
-    const stepChange = Math.round((deltaY * sensitivity) / 50) // ~50px per step
-
-    const newIndex = Math.max(
-      0,
-      Math.min(numOptions - 1, startIndex + stepChange)
-    )
-
-    if (newIndex !== currentIndex) {
-      onChange?.(options[newIndex])
-    }
-  }
-
-  const handleMouseUp = () => {
-    setIsDragging(false)
-  }
-
   const handleDoubleClick = () => {
     onChange?.(options[0])
   }
 
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove)
-      window.addEventListener("mouseup", handleMouseUp)
-      return () => {
-        window.removeEventListener("mousemove", handleMouseMove)
-        window.removeEventListener("mouseup", handleMouseUp)
+    if (!isDragging) return
+
+    const handleMouseMove = (e) => {
+      const deltaY = startY - e.clientY // Inverted: up increases, down decreases
+      const sensitivity = 0.3 // Lower sensitivity for discrete steps
+      const stepChange = Math.round((deltaY * sensitivity) / 50) // ~50px per step
+
+      const newIndex = Math.max(
+        0,
+        Math.min(numOptions - 1, startIndex + stepChange)
+      )
+
+      if (newIndex !== currentIndex) {
+        onChange?.(options[newIndex])
       }
     }
-  }, [isDragging, startY, startIndex])
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [isDragging, startY, startIndex, numOptions, currentIndex, options, onChange])
 
   return (
     <div className="ctl-discrete-knob">
-      <label>{label}</label>
       <div
         ref={knobRef}
         className={`discrete-knob ${isDragging ? "dragging" : ""}`}
@@ -112,17 +109,12 @@ export function DiscreteKnob({ label, options, value, onChange }) {
               y1="50"
               x2="50"
               y2="25"
-              stroke="var(--accent-color, #a7ffb0)"
+              stroke="var(--crt)"
               strokeWidth="3"
               strokeLinecap="round"
             />
             {/* Indicator dot */}
-            <circle
-              cx="50"
-              cy="25"
-              r="3"
-              fill="var(--accent-color, #a7ffb0)"
-            />
+            <circle cx="50" cy="25" r="3" fill="var(--crt)" />
           </g>
         </svg>
       </div>

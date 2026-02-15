@@ -1,18 +1,9 @@
-/* Shared knob base styles */
 .ctl-knob,
 .ctl-discrete-knob {
   align-items: center;
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-}
-
-.ctl-knob label,
-.ctl-discrete-knob label {
-  font-size: 0.875rem;
-  letter-spacing: 0.05em;
-  opacity: 0.7;
-  text-transform: uppercase;
 }
 
 .knob,
@@ -28,36 +19,17 @@
   transition: transform 0.1s ease;
 }
 
-.knob:active,
-.knob.dragging {
-  transform: scale(1.05);
-}
-
-.knob-svg,
-.discrete-knob-svg {
-  height: 100%;
-  width: 100%;
-}
-
 .knob-svg {
-  filter: drop-shadow(0 calc(var(--space-1) / 2) var(--space-1) rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(
+    0 calc(var(--space-1) / 2) var(--space-1) var(--black-30)
+  );
 }
 
 .ctl-knob output,
 .ctl-discrete-knob output {
-  display: block;
+  color: var(--ok);
+  font-size: var(--text-sm);
   font-variant-numeric: tabular-nums;
-  min-width: 3ch;
+  min-width: 4ch;
   text-align: center;
-}
-
-/* Specific knob styles */
-.ctl-knob {
-  padding: var(--space-2);
-}
-
-.ctl-knob output {
-  color: var(--accent-color, #a7ffb0);
-  font-size: 1rem;
-  font-weight: 500;
 }

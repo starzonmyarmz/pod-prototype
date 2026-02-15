@@ -466,21 +466,8 @@ function NavStatus() {
       <StatusItem label="SENSOR" value={sensorStatus.value} />
       <StatusItem label="ROUTE" value={routeCoherence.value} />
       <StatusItem label="DRIFT" value={driftStatus.value} />
-    </div>
-  )
-}
-
-function ReactorReadout() {
-  return (
-    <div className="reactor-strip">
-      <div className="reactor-control">
-        <label className="reactor-label">POWER</label>
-        <output className="reactor-value">{reactorPower.value}</output>
-      </div>
-      <div className="reactor-control">
-        <label className="reactor-label">CORE TEMP</label>
-        <output className="reactor-value">{reactorTemp.value}°</output>
-      </div>
+      <StatusItem label="CORE POWER" value={reactorPower.value} />
+      <StatusItem label="CORE TEMP" value={`${reactorTemp.value}°`} />
     </div>
   )
 }
@@ -657,7 +644,6 @@ function NavPlotter() {
       </section>
       <section id="nav-readout">
         <NavStatus />
-        <ReactorReadout />
       </section>
     </>
   )

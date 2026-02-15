@@ -9,8 +9,8 @@
     width: var(--space-2);
     height: var(--space-2);
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--white-10);
+    border: 1px solid var(--white-20);
     transition: all 0.15s ease;
   }
 
@@ -28,12 +28,13 @@
     height: calc(var(--space-8) + var(--space-3));
     background: linear-gradient(
       to bottom,
-      rgba(0, 0, 0, 0.3),
-      rgba(0, 0, 0, 0.5)
+      var(--black-30),
+      var(--black-50)
     );
-    border: calc(var(--space-1) / 2) solid rgba(255, 255, 255, 0.2);
+    border: calc(var(--space-1) / 2) solid var(--white-20);
     border-radius: var(--space-1);
-    box-shadow: inset 0 calc(var(--space-1) / 2) var(--space-1) rgba(0, 0, 0, 0.5);
+    box-shadow: inset 0 calc(var(--space-1) / 2) var(--space-1)
+      var(--black-50);
   }
 
   input {
@@ -51,13 +52,13 @@
     left: 50%;
     transform: translateX(-50%);
     background: var(--bevel);
-    border: calc(var(--space-1) / 2) solid rgba(255, 255, 255, 0.3);
+    border: calc(var(--space-1) / 2) solid var(--white-30);
     border-radius: calc(var(--space-1) - 1px);
     cursor: pointer;
     transition: all 0.2s ease;
     box-shadow:
-      0 calc(var(--space-1) / 2) var(--space-1) rgba(0, 0, 0, 0.3),
-      inset 0 1px calc(var(--space-1) / 2) rgba(255, 255, 255, 0.2);
+      0 calc(var(--space-1) / 2) var(--space-1) var(--black-30),
+      inset 0 1px calc(var(--space-1) / 2) var(--white-20);
   }
 
   input:not(:checked) + .toggle-handle {
@@ -67,8 +68,8 @@
   input:checked + .toggle-handle {
     top: var(--space-1);
     box-shadow:
-      0 1px calc(var(--space-1) / 2) rgba(0, 0, 0, 0.3),
-      inset 0 1px calc(var(--space-1) / 2) rgba(255, 255, 255, 0.3);
+      0 1px calc(var(--space-1) / 2) var(--black-30),
+      inset 0 1px calc(var(--space-1) / 2) var(--white-30);
   }
 
   .toggle-handle::before {
@@ -79,14 +80,14 @@
     transform: translate(-50%, -50%);
     width: var(--space-5);
     height: calc(var(--space-1) - 1px);
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--black-30);
     border-radius: calc(var(--space-1) / 2);
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+    box-shadow: 0 1px 0 var(--white-10);
   }
 
   .switch-label {
     font-size: 0.875rem;
-    color: rgba(255, 255, 255, 0.7);
+    color: var(--white-70);
     text-align: center;
   }
 }

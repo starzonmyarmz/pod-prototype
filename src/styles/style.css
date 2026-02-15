@@ -12,10 +12,29 @@
   --ink: #e7e2cf;
   --muted: #a8a39a;
   --crt: #a7ffb0;
-  --crtDim: rgba(167, 255, 176, 0.16);
+  --crtDim: rgb(167 255 176 / 0.16);
   --warn: #ffcc66;
   --alarm: #ff6666;
   --ok: #7dffb6;
+
+  --white: #fff;
+  --white-10: rgb(255 255 255 / 0.1);
+  --white-20: rgb(255 255 255 / 0.2);
+  --white-30: rgb(255 255 255 / 0.3);
+  --white-70: rgb(255 255 255 / 0.7);
+
+  --black-30: rgb(0 0 0 / 0.3);
+  --black-40: rgb(0 0 0 / 0.4);
+  --black-50: rgb(0 0 0 / 0.5);
+
+  --crt-10: rgb(167 255 176 / 0.1);
+  --crt-20: rgb(167 255 176 / 0.2);
+  --crt-30: rgb(167 255 176 / 0.3);
+  --crt-40: rgb(167 255 176 / 0.4);
+  --crt-60: rgb(167 255 176 / 0.6);
+
+  --alarm-solid: #f44336;
+  --alarm-10: rgb(244 67 54 / 0.1);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -25,10 +44,13 @@
   --space-6: 32px;
   --space-7: 40px;
   --space-8: 48px;
+
+  --text-sm: 0.875rem;
+  --text-xs: 0.75rem;
 }
 
 html {
-  background: #fff;
+  background: var(--white);
   color: var(--ink);
   font-family: monospace;
   line-height: 1;
