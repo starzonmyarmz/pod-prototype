@@ -1,6 +1,7 @@
 import { render } from "preact"
 
 import { Reactor } from "./components/reactor.jsx"
+import { ShipHealth } from "./components/shiphealth.jsx"
 import { Navigation } from "./components/navigation.jsx"
 import { reactorPhase } from "./state/reactor.js"
 
@@ -14,7 +15,8 @@ export function App() {
   return (
     <>
       <Reactor />
-      {phase >= 0 && <Navigation />}
+      <ShipHealth />
+      <Navigation active={phase >= 2} />
     </>
   )
 }

@@ -393,7 +393,7 @@ const filteredStars = computed(() => {
 })
 
 // Components
-function StarField() {
+function StarField({ active }) {
   const yawAngle = yaw.value
   const pitchSkew = pitch.value * TRANSFORM_SCALE
   const rollSkew = roll.value * TRANSFORM_SCALE
@@ -407,7 +407,7 @@ function StarField() {
   `
 
   return (
-    <svg viewBox="-400 -400 800 800" className="star-plotter">
+    <svg viewBox="-400 -400 800 800" className={`star-plotter ${active ? "" : "inactive"}`}>
       <SVGFilters />
 
       <rect
@@ -422,7 +422,7 @@ function StarField() {
       <Grid />
 
       <g transform={transform}>
-        {constellations.map((constellation, idx) => (
+        {active && constellations.map((constellation, idx) => (
           <Constellation
             key={`constellation-${idx}`}
             constellation={constellation}
@@ -430,7 +430,7 @@ function StarField() {
           />
         ))}
 
-        {filteredStars.value.map((star, i) => (
+        {active && filteredStars.value.map((star, i) => (
           <circle
             key={`star-${star.objectType}-${i}`}
             cx={star.x}
@@ -450,29 +450,31 @@ function StarField() {
   )
 }
 
-function StatusItem({ label, value }) {
+function StatusItem({ label, value, active }) {
   return (
     <div className="status-item">
       <span className="status-label">{label}:</span>
-      <span className="status-value">{value}</span>
+      <span className={`status-value ${active ? "" : "inactive"}`}>
+        {active ? value : "---"}
+      </span>
     </div>
   )
 }
 
-function NavStatus() {
+function NavStatus({ active }) {
   return (
     <div className="nav-status">
-      <StatusItem label="FRAME" value={frameSelect.value.toUpperCase()} />
-      <StatusItem label="SENSOR" value={sensorStatus.value} />
-      <StatusItem label="ROUTE" value={routeCoherence.value} />
-      <StatusItem label="DRIFT" value={driftStatus.value} />
-      <StatusItem label="CORE POWER" value={reactorPower.value} />
-      <StatusItem label="CORE TEMP" value={`${reactorTemp.value}°`} />
+      <StatusItem label="FRAME" value={frameSelect.value.toUpperCase()} active={active} />
+      <StatusItem label="SENSOR" value={sensorStatus.value} active={active} />
+      <StatusItem label="ROUTE" value={routeCoherence.value} active={active} />
+      <StatusItem label="DRIFT" value={driftStatus.value} active={active} />
+      <StatusItem label="CORE POWER" value={reactorPower.value} active={active} />
+      <StatusItem label="CORE TEMP" value={`${reactorTemp.value}°`} active={active} />
     </div>
   )
 }
 
-function ObjectTypeFilters() {
+function ObjectTypeFilters({ active }) {
   return (
     <fieldset className="ctl-group">
       <legend>Object type</legend>
@@ -481,23 +483,26 @@ function ObjectTypeFilters() {
           value="stlr"
           checked={stellar.value}
           onChange={(e) => (stellar.value = e.target.checked)}
+          disabled={!active}
         />
         <Switch
           value="artf"
           checked={artificial.value}
           onChange={(e) => (artificial.value = e.target.checked)}
+          disabled={!active}
         />
         <Switch
           value="unkn"
           checked={unknown.value}
           onChange={(e) => (unknown.value = e.target.checked)}
+          disabled={!active}
         />
       </div>
     </fieldset>
   )
 }
 
-function MagnitudeFilter() {
+function MagnitudeFilter({ active }) {
   return (
     <fieldset className="ctl-group">
       <legend>Magnitude</legend>
@@ -507,12 +512,13 @@ function MagnitudeFilter() {
         max={100}
         value={magnitude.value}
         onChange={(v) => (magnitude.value = v)}
+        disabled={!active}
       />
     </fieldset>
   )
 }
 
-function SpectralFilters() {
+function SpectralFilters({ active }) {
   return (
     <fieldset className="ctl-group">
       <legend>Spectral</legend>
@@ -521,23 +527,26 @@ function SpectralFilters() {
           value="fgk"
           checked={fgk.value}
           onChange={(e) => (fgk.value = e.target.checked)}
+          disabled={!active}
         />
         <Switch
           value="ob"
           checked={ob.value}
           onChange={(e) => (ob.value = e.target.checked)}
+          disabled={!active}
         />
         <Switch
           value="anom"
           checked={anom.value}
           onChange={(e) => (anom.value = e.target.checked)}
+          disabled={!active}
         />
       </div>
     </fieldset>
   )
 }
 
-function ConfidenceFilters() {
+function ConfidenceFilters({ active }) {
   const confidenceMap = {
     raw: "raw",
     prob: "probable",
@@ -556,12 +565,13 @@ function ConfidenceFilters() {
         options={["raw", "prob", "vrfd"]}
         value={reverseMap[confidence.value]}
         onChange={(v) => (confidence.value = confidenceMap[v])}
+        disabled={!active}
       />
     </fieldset>
   )
 }
 
-function FrameSelectionFilters() {
+function FrameSelectionFilters({ active }) {
   const frameMap = {
     ship: "ship-rel",
     glct: "galactic",
@@ -580,12 +590,13 @@ function FrameSelectionFilters() {
         options={["ship", "glct", "elpt"]}
         value={reverseMap[frameSelect.value]}
         onChange={(v) => (frameSelect.value = frameMap[v])}
+        disabled={!active}
       />
     </fieldset>
   )
 }
 
-function OrientationControls() {
+function OrientationControls({ active }) {
   return (
     <fieldset className="ctl-group">
       <legend>Orientation</legend>
@@ -596,6 +607,7 @@ function OrientationControls() {
           max={180}
           value={yaw.value}
           onChange={(v) => (yaw.value = v)}
+          disabled={!active}
         />
         <Knob
           label="pitch"
@@ -603,6 +615,7 @@ function OrientationControls() {
           max={45}
           value={pitch.value}
           onChange={(v) => (pitch.value = v)}
+          disabled={!active}
         />
         <Knob
           label="roll"
@@ -610,50 +623,51 @@ function OrientationControls() {
           max={45}
           value={roll.value}
           onChange={(v) => (roll.value = v)}
+          disabled={!active}
         />
       </div>
     </fieldset>
   )
 }
 
-function NavFilters() {
+function NavFilters({ active }) {
   return (
     <section id="nav-filters" class="stack g3">
       <div className="flow fill g3">
-        <ObjectTypeFilters />
-        <SpectralFilters />
+        <ObjectTypeFilters active={active} />
+        <SpectralFilters active={active} />
       </div>
       <div class="flow g3">
-        <MagnitudeFilter />
-        <ConfidenceFilters />
-        <FrameSelectionFilters />
+        <MagnitudeFilter active={active} />
+        <ConfidenceFilters active={active} />
+        <FrameSelectionFilters active={active} />
       </div>
-      <OrientationControls />
-      <button id="nav-confirm" className="btn-confirm">
+      <OrientationControls active={active} />
+      <button id="nav-confirm" className="btn-confirm" disabled={!active}>
         CONFIRM
       </button>
     </section>
   )
 }
 
-function NavPlotter() {
+function NavPlotter({ active }) {
   return (
     <>
       <section id="nav-plotter">
-        <StarField />
+        <StarField active={active} />
       </section>
       <section id="nav-readout">
-        <NavStatus />
+        <NavStatus active={active} />
       </section>
     </>
   )
 }
 
-export function Navigation() {
+export function Navigation({ active = true }) {
   return (
-    <main id="nav">
-      <NavFilters />
-      <NavPlotter />
+    <main id="nav" class={active ? "" : "inactive"}>
+      <NavFilters active={active} />
+      <NavPlotter active={active} />
     </main>
   )
 }

@@ -22,6 +22,12 @@
     border-color: var(--ok);
   }
 
+  .led[data-disabled="true"] {
+    background: var(--black-50);
+    border-color: var(--white-10);
+    box-shadow: none;
+  }
+
   .switch-housing {
     position: relative;
     width: var(--space-5);
