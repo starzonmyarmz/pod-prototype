@@ -2,7 +2,7 @@ import { render } from "preact"
 
 import { Reactor } from "./components/reactor.jsx"
 import { Console } from "./components/console.jsx"
-import { ShipHealth } from "./components/shiphealth.jsx"
+import { LifeSupport } from "./components/lifesupport.jsx"
 import { Navigation } from "./components/navigation.jsx"
 import { reactorPhase } from "./state/reactor.js"
 
@@ -17,7 +17,7 @@ export function App() {
     <>
       <Reactor />
       <Console />
-      <ShipHealth />
+      <LifeSupport />
       <Navigation active={phase >= 2} />
     </>
   )

@@ -1,6 +1,13 @@
 import { signal } from "@preact/signals"
 import { useEffect, useRef } from "preact/hooks"
 import { reactorPhase } from "../state/reactor.js"
+import {
+  fractureSite,
+  fracturePatched,
+  cockpitSealed,
+  crewQuartersSealed,
+  serviceBaySealed,
+} from "../state/lifesupport.js"
 import "../styles/console.css"
 
 const consoleHistory = signal([])
@@ -41,6 +48,52 @@ export function Console() {
           ...consoleHistory.value,
           { type: "output", text: "pong" },
         ]
+      } else if (command.startsWith("patch ")) {
+        const compartmentArg = command.slice(6).trim()
+        const aliasMap = {
+          cockpit: "cockpit",
+          ckpt: "cockpit",
+          crew: "crew-quarters",
+          "crew-quarters": "crew-quarters",
+          svc: "service-bay",
+          "service-bay": "service-bay",
+        }
+        const target = aliasMap[compartmentArg]
+
+        if (!target) {
+          consoleHistory.value = [
+            ...consoleHistory.value,
+            { type: "error", text: `PATCH FAILED: UNKNOWN COMPARTMENT "${compartmentArg.toUpperCase()}"` },
+          ]
+        } else if (fracturePatched.peek()) {
+          consoleHistory.value = [
+            ...consoleHistory.value,
+            { type: "output", text: "FRACTURE ALREADY SEALED" },
+          ]
+        } else if (target !== fractureSite.peek()) {
+          consoleHistory.value = [
+            ...consoleHistory.value,
+            { type: "error", text: `PATCH FAILED: NO FRACTURE DETECTED IN ${compartmentArg.toUpperCase()}` },
+          ]
+        } else {
+          const sealedMap = {
+            cockpit: cockpitSealed,
+            "crew-quarters": crewQuartersSealed,
+            "service-bay": serviceBaySealed,
+          }
+          if (!sealedMap[target].peek()) {
+            consoleHistory.value = [
+              ...consoleHistory.value,
+              { type: "error", text: "CANNOT PATCH: COMPARTMENT MUST BE ISOLATED FIRST" },
+            ]
+          } else {
+            fracturePatched.value = true
+            consoleHistory.value = [
+              ...consoleHistory.value,
+              { type: "output", text: `FRACTURE SEALED — ${target.toUpperCase()} HULL INTEGRITY RESTORED` },
+            ]
+          }
+        }
       } else {
         consoleHistory.value = [
           ...consoleHistory.value,

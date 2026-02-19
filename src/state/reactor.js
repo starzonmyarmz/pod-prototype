@@ -214,7 +214,8 @@ function setupPhaseProgression() {
       demoteTimer = null
     }
 
-    if (isStableAtThreshold(temp, power, threshold) && phase < 3) {
+    // Phase 1→2 transition is handled by lifesupport.js (environmental gate)
+    if (isStableAtThreshold(temp, power, threshold) && phase < 3 && phase !== 1) {
       progressTimer = setTimeout(() => {
         if (shouldProgressPhase(phase)) {
           reactorPhase.value = phase + 1

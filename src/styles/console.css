@@ -54,10 +54,6 @@
   padding-top: var(--space-2);
 }
 
-.console-cursor {
-  font-weight: bold;
-}
-
 #console-input {
   flex: 1;
   background: transparent;
