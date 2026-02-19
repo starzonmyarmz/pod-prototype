@@ -1,159 +1,122 @@
-import { Switch } from "./switch.jsx"
 import {
-  SWITCH_VALUES,
-  PHASE_THRESHOLDS,
-  checkedSwitches,
-  reactorOverride,
-  reactorPhase,
-  reactorPower,
-  reactorStatus,
-  reactorTemp,
-  reactorExploded,
-  lastSwitchPressTime,
-} from "../state/reactor.js"
+  auxPowerOnline, reactorPhase, busCStable, busBOnline,
+  scrubbersPowered, lssConsolePowered, reactorCanStart,
+  navCoreRepaired, log, envBaselineOk
+} from "../state/game.js"
 
-import "../styles/reactor.css"
+const PHASE_LABELS = [
+  "OFFLINE",
+  "IDLE / AUX",
+  "PHASE II — MAIN",
+  "PHASE III — FULL",
+  "PHASE IV — MAX",
+]
+
+const PHASE_COLORS = ["var(--c-off)", "var(--c-dim)", "var(--c-ok)", "var(--c-warn)", "var(--c-danger)"]
+
+function startAux() {
+  if (auxPowerOnline.value) return
+  auxPowerOnline.value = true
+  lssConsolePowered.value = true
+  log("AUX power restored — LSS console powered", "ok")
+}
+
+function advanceReactor() {
+  const p = reactorPhase.value
+  if (p === 0 && !reactorCanStart.value) {
+    log("REACTOR START BLOCKED — stabilise hull first", "error")
+    return
+  }
+  if (p >= 4) { log("Reactor at maximum phase", "warn"); return }
+  if (p === 1 && !envBaselineOk.value) {
+    log("Phase II requires environmental baseline — patch fracture + scrubbers first", "error")
+    return
+  }
+  reactorPhase.value = p + 1
+  log(`Reactor advanced to ${PHASE_LABELS[p + 1]}`, "ok")
+}
+
+function scram() {
+  if (reactorPhase.value === 0) return
+  reactorPhase.value = Math.max(0, reactorPhase.value - 1)
+  log("Reactor stepped down", "warn")
+}
+
+function toggleScrubbers() {
+  if (!busCStable.value) { log("BUS C offline — cannot power scrubbers", "error"); return }
+  scrubbersPowered.value = !scrubbersPowered.value
+  log(scrubbersPowered.value ? "Scrubbers ONLINE" : "Scrubbers OFFLINE", scrubbersPowered.value ? "ok" : "warn")
+}
+
+function toggleNavRepair() {
+  if (!busBOnline.value) { log("BUS B offline — NAV core unavailable", "error"); return }
+  navCoreRepaired.value = !navCoreRepaired.value
+  log(navCoreRepaired.value ? "NAV core repaired" : "NAV core offline", navCoreRepaired.value ? "ok" : "warn")
+}
 
 export function Reactor() {
-  const toggleSwitch = async (value) => {
-    const switches = new Set(checkedSwitches.value)
-
-    switches.has(value) ? switches.delete(value) : switches.add(value)
-
-    checkedSwitches.value = switches
-    lastSwitchPressTime.value = Date.now()
-    reactorPower.value = [...switches].reduce((sum, val) => sum + val, 0)
-  }
-
-  const handleOverridePress = () => (reactorOverride.value = true)
-  const handleOverrideRelease = () => (reactorOverride.value = false)
-
-  return (
-    <main id="reactor">
-      <ReactorStatus />
-      <ReactorTemp />
-      <ReactorSwitches onToggle={toggleSwitch} />
-      <ReactorOverride
-        onPress={handleOverridePress}
-        onRelease={handleOverrideRelease}
-      />
-    </main>
-  )
-}
-
-function ReactorStatus() {
   const phase = reactorPhase.value
-  const status = reactorStatus.value
+  const barWidth = `${(phase / 4) * 100}%`
+  const barColor = PHASE_COLORS[phase]
 
   return (
-    <section id="reactor-status">
-      REACTOR STATUS:{" "}
-      <output>
-        Phase {phase} {status && `— ${status}`}
-      </output>
-    </section>
-  )
-}
+    <section class="panel reactor-panel">
+      <header class="panel-header">
+        <span class="panel-title">REACTOR</span>
+        <span class="status-badge" style={{ color: barColor }}>
+          {PHASE_LABELS[phase]}
+        </span>
+      </header>
 
-// Calculate color based on temperature percentage (blue → green → yellow → orange → red)
-function getTempColor(pct) {
-  if (pct < 25) return `hsl(${200 + pct * 1.6}, 80%, 60%)` // blue to cyan
-  if (pct < 50) return `hsl(${240 - pct * 2.4}, 70%, 50%)` // cyan to green
-  if (pct < 75) return `hsl(${120 - (pct - 50) * 2.4}, 80%, 50%)` // green to yellow/orange
-  return `hsl(${60 - (pct - 75) * 2.4}, 90%, 55%)` // orange to red
-}
-
-function ReactorTemp() {
-  const temp = reactorTemp.value
-  const exploded = reactorExploded.value
-  const phase = reactorPhase.value
-  const maxTemp = SWITCH_VALUES.reduce((sum, val) => sum + val, 0)
-
-  // Calculate percentage with threshold as median (50%)
-  // Scale: 0 to threshold*2, with threshold at 50%
-  const threshold = PHASE_THRESHOLDS[phase] || maxTemp
-  const scaleMax = Math.min(threshold * 2, maxTemp)
-  const percentage = Math.min((temp / scaleMax) * 100, 100)
-  const angle = (percentage / 100) * 180 - 90 // -90 to 90 degrees
-
-  const needleColor = getTempColor(percentage)
-
-  return (
-    <section id="reactor-temp" class="stack g2">
-      CORE TEMP
-      {exploded ? (
-        <output class="temp-exploded">💥 EXPLODED</output>
-      ) : (
-        <div class="tachometer">
-          <svg viewBox="0 0 200 120" class="tachometer-gauge">
-            {/* Background arc */}
-            <path
-              d="M 20 100 A 80 80 0 0 1 180 100"
-              fill="none"
-              stroke="#333"
-              stroke-width="20"
-              stroke-linecap="round"
-            />
-            {/* Colored progress arc */}
-            <path
-              d="M 20 100 A 80 80 0 0 1 180 100"
-              fill="none"
-              stroke={needleColor}
-              stroke-width="20"
-              stroke-linecap="round"
-              stroke-dasharray={`${percentage * 2.51} 251`}
-              class="tachometer-arc"
-            />
-            {/* Center dot */}
-            <circle cx="100" cy="100" r="8" fill="#444" />
-            {/* Needle */}
-            <line
-              x1="100"
-              y1="100"
-              x2="100"
-              y2="30"
-              stroke={needleColor}
-              stroke-width="3"
-              stroke-linecap="round"
-              transform={`rotate(${angle}, 100, 100)`}
-              class="tachometer-needle"
-            />
-            <circle cx="100" cy="100" r="6" fill={needleColor} />
-          </svg>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function ReactorSwitches({ onToggle }) {
-  return (
-    <section id="reactor-switches" class="flow g5">
-      {SWITCH_VALUES.map((value) => (
-        <Switch
-          key={value}
-          value={value}
-          checked={checkedSwitches.value.has(value)}
-          label={false}
-          onChange={() => onToggle(value)}
+      <div class="reactor-bar-track">
+        <div
+          class="reactor-bar"
+          style={{ width: barWidth, background: barColor, boxShadow: `0 0 12px ${barColor}` }}
         />
-      ))}
-    </section>
-  )
-}
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} class="reactor-bar-notch" style={{ left: `${i * 25}%` }} />
+        ))}
+      </div>
 
-function ReactorOverride({ onPress, onRelease }) {
-  const isActive = reactorOverride.value
+      <div class="control-row">
+        <button class="btn" onClick={startAux} disabled={auxPowerOnline.value}>
+          {auxPowerOnline.value ? "AUX ONLINE" : "CRANK AUX"}
+        </button>
+        <button class="btn btn-danger" onClick={scram} disabled={phase === 0}>
+          SCRAM ▼
+        </button>
+        <button class="btn btn-primary" onClick={advanceReactor}>
+          IGNITE ▲
+        </button>
+      </div>
 
-  return (
-    <section id="reactor-buttons" class="stack g2">
-      <button
-        type="button"
-        onPointerDown={onPress}
-        onPointerUp={onRelease}
-        class={`btn override ${isActive ? "down" : ""}`}
-      />
-      OVERRIDE
+      <div class="bus-row">
+        <div class={`bus-indicator ${busCStable.value ? "bus-on" : ""}`}>
+          <span>BUS C / ENV</span>
+          <span class="bus-dot" />
+        </div>
+        <div class={`bus-indicator ${busBOnline.value ? "bus-on" : ""}`}>
+          <span>BUS B / NAV</span>
+          <span class="bus-dot" />
+        </div>
+      </div>
+
+      <div class="control-row">
+        <button
+          class={`btn ${scrubbersPowered.value ? "btn-active" : ""}`}
+          onClick={toggleScrubbers}
+          disabled={!busCStable.value}
+        >
+          SCRUBBERS {scrubbersPowered.value ? "ON" : "OFF"}
+        </button>
+        <button
+          class={`btn ${navCoreRepaired.value ? "btn-active" : ""}`}
+          onClick={toggleNavRepair}
+          disabled={!busBOnline.value}
+        >
+          NAV CORE {navCoreRepaired.value ? "REPAIRED" : "REPAIR"}
+        </button>
+      </div>
     </section>
   )
 }

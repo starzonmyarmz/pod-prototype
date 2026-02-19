@@ -1,24 +1,19 @@
 import { render } from "preact"
-
-import { Reactor } from "./components/reactor.jsx"
-import { Console } from "./components/console.jsx"
+import "./styles/main.css"
+import { Reactor }     from "./components/reactor.jsx"
 import { LifeSupport } from "./components/lifesupport.jsx"
-import { Navigation } from "./components/navigation.jsx"
-import { reactorPhase } from "./state/reactor.js"
+import { Navigation }  from "./components/navigation.jsx"
+import { Biometrics }  from "./components/biometrics.jsx"
+import { Terminal }    from "./components/terminal.jsx"
 
-import "./styles/knob.css"
-import "./styles/switch.css"
-import "./styles/style.css"
-
-export function App() {
-  const phase = reactorPhase.value
-
+function App() {
   return (
     <>
       <Reactor />
-      <Console />
       <LifeSupport />
-      <Navigation active={phase >= 2} />
+      <Navigation />
+      <Biometrics />
+      <Terminal />
     </>
   )
 }
